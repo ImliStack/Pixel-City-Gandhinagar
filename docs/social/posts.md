@@ -1,6 +1,6 @@
 # Launch posts · Pixel City Gandhinagar (ImliStack)
 
-Video: `docs/social/pixel-city-x.mp4` (48 s, 1280×720, H.264, no audio, captions burned in). It works for both X and LinkedIn. To regenerate it: `node tools/qa/social-video.mjs`.
+Video: `docs/social/pixel-city-x.mp4` (48 s, 1280×720, H.264, silent, captions burned in), and `docs/social/pixel-city-x-sound.mp4` (the same video with a soft original chiptune loop, generated with ffmpeg, so there are no music rights to clear). Both work for X and LinkedIn. To regenerate it: `node tools/qa/social-video.mjs`.
 
 ---
 
