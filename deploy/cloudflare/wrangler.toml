@@ -1,0 +1,23 @@
+# Presence + daily game Worker. Deploy: npx wrangler deploy --config deploy/cloudflare/wrangler.toml
+# Tiles go to R2 (see README "Deploying"); the viewer build (apps/viewer/dist) is served as static assets.
+name = "pixel-city-gandhinagar"
+main = "worker.mjs"
+compatibility_date = "2026-09-01"
+
+[assets]
+directory = "../../apps/viewer/dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[[durable_objects.bindings]]
+name = "CITY_ROOM"
+class_name = "CityRoom"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["CityRoom"]
+
+# Optional mirror of the visit total. Create with: npx wrangler kv namespace create VISITS
+# [[kv_namespaces]]
+# binding = "VISITS"
+# id = "<namespace id>"

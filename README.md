@@ -67,6 +67,14 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
     <td align="center"><sub><b>Sector housing</b> — compound walls, roof tanks, neem-lined streets</sub></td>
     <td align="center"><sub><b>Places</b> — pixel-icon filters for petrol, hospitals, schools, metro…</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/daily-game.jpg" alt="Daily Find-the-landmark game: tile close-up clue, distance score, other visitors' guesses as pixel faces and today's board" /></td>
+    <td width="50%"><img src="docs/screenshots/presence.jpg" alt="Visitor presence: pixel-art faces of everyone on the map now, plus total visits" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Daily game</b> — find today's 3 places; see where others guessed</sub></td>
+    <td align="center"><sub><b>Who's here</b> — anonymous pixel faces, live count and visits</sub></td>
+  </tr>
 </table>
 
 <table>
@@ -127,6 +135,11 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 - **Places filter**: 16 pixel-icon categories — petrol pumps, hospitals, pharmacies, colleges, schools, malls, banks, temples, government offices, food, hotels, **metro stations, railway stations, bus stands**, parks and sights.
 - **Place names appear as you zoom in**, decluttered so labels never overlap.
 - **Minimap** with a live view box (click or drag to move), share links with view, layer, filters and image version, and a mobile layout.
+- **Random landmark** (🎲 / `R`): a shuffle-bag tour of the curated landmarks, idea borrowed from Isometric Málaga.
+
+**Play together**
+- **Who's here now**: a stack of deterministic 12×12 pixel faces (one per open tab, generated from a random anonymous id), with a live count and total visits. No IPs, cookies or accounts are used.
+- **Daily "Find the landmark"** (`D`): everyone gets the same 3 places each day (IST). The clue is a close-up crop of the real tiles. Pan the crosshair onto the spot and guess, and you are scored by ground distance. After you guess, you see other visitors' guesses as their faces, plus today's board and a copyable 🟩🟨🟧🟥 result. Without the social server the counter hides and the game plays solo. See [docs/ENGAGEMENT-IDEAS.md](docs/ENGAGEMENT-IDEAS.md) for the ranked ideas behind it.
 
 ## ✦ Quick start
 
@@ -139,6 +152,10 @@ npm ci
 python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.lock.txt
 npm run dev                 # → http://127.0.0.1:5173
 ```
+
+`npm run dev` also serves the presence and daily-game API (`/api/social/beat`, in memory). Open two tabs to see two faces and play against yourself.
+
+**Deploying (Cloudflare).** `npm run build`, upload `outputs/maps/` to R2 (or Pages assets), then `npx wrangler deploy --config deploy/cloudflare/wrangler.toml`. The Worker routes `/api/social/*` to one Durable Object, which keeps live presence in memory and stores visits and today's board in its storage. An optional KV mirror holds the visit total. The protocol and room logic are the same module the dev server uses (`apps/viewer/shared/social-core.mjs`).
 
 The exported map in `outputs/maps/gandhinagar-city` opens straight away. To rebuild it from source:
 
@@ -163,6 +180,8 @@ The exported map in `outputs/maps/gandhinagar-city` opens straight away. To rebu
 | `+` `−` | Zoom |
 | `0` · `Home` | Reset to the whole city |
 | Arrow keys | Pan |
+| `R` | Fly to a random landmark |
+| `D` | Daily landmark game |
 | `G` | Geography debug overlay |
 | `?` | About this map |
 | `Esc` | Close panels / clear selection |
@@ -228,11 +247,12 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 24/24 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 29/29 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (45 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
 | OSM2World comparison | ⚠️ investigated earlier, timed out; the Three.js renderer is used instead |
+| Visitor presence + daily multiplayer game | ✅ done locally — Cloudflare Worker + Durable Object written and unit-tested, not deployed yet |
 | Public hosting (Cloudflare R2 + Pages) | ⏳ planned — needs your Cloudflare account; tiles ≈ 3.5 GB |
 
 ## ✦ Roadmap
@@ -241,6 +261,8 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 - [x] Typology buildings, landmark models, plot walls, street lamps, metro viaduct
 - [x] Summer, monsoon, winter and night layers
 - [x] Pixel-icon place filters, transport filters, close-zoom labels, typo-tolerant search
+- [x] Visitor presence faces and the daily Find-the-landmark game
+- [ ] Live cursors of other visitors, scavenger hunts (see docs/ENGAGEMENT-IDEAS.md)
 - [ ] GIFT City and the riverfront south of the current extent
 - [ ] Terrain (open DEM) instead of flat ground
 - [ ] Hand-modelled Mahatma Mandir, Sachivalaya blocks and Infocity

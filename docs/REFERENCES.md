@@ -46,3 +46,17 @@ For **cityscope**, inspected `README.md`, `package.json`, `public/cities/bangalo
 **Jantar Mantar.** [UNESCO](https://whc.unesco.org/en/list/1338/) identifies the fixed masonry instruments and explains the surviving site's restoration history. [The specialist Jantar Mantar project](https://jantarmantar.org/learn/observatories/instruments/samrat/index.html) describes the triangular gnomon and quadrants. Its [measurement-based modelling study](https://jantarmantar.org/gallery/renderingsSamrat/index.php) gives the Jaipur gnomon as approximately 22.6 m; different sources quote larger overall heights including upper structures, so this is not survey certainty. The gnomon plane is aligned true north–south; its inclined edge rises northward near 27°, approximately the site's latitude. The site's [research publication](https://www.jantarmantar.org/resources/Articles/Architecture_Science_web.pdf) contains a site plan and photographs. Original simplified instruments may use those structural facts with OSM centres/footprints. Do not copy their 3D models, imagery or diagrams: no broad asset reuse grant was established.
 
 All three custom forms are **artistic reconstructions**. Exact positioning comes from mapped geometry wherever available; dimensions, decoration and any inferred alignment remain disclosed in metadata and the viewer. No decorative building is invented outside an explicitly authored landmark footprint.
+
+## isometric-malaga.pages.dev · inspected 26 October 2026
+
+Opened live in the built-in browser; page source, `tiles/config.json` and `tiles/gen.dzi` read. Nothing copied.
+
+| Aspect | Observed | Our position |
+| --- | --- | --- |
+| Tiling | One DZI, `Format="webp"`, `TileSize=512`, `Overlap=1`, 91,136 × 26,624 px (178 × 52 tiles at full res). Static files on Cloudflare Pages. | Same pyramid shape as ours (512 / overlap 1 / WebP, 58,368 × 47,104). Confirms R2/Pages static hosting is enough for tiles. No change. |
+| Image source | `config.json` notes a generative pass ("Colab bf16 redraws", sea fixes, clean mask) over the base. | Our layers are deterministic renders; no generative layer. Not adopted (rights/provenance stance unchanged). |
+| Viewer | Vanilla OpenSeadragon 5, canvas drawer, built-in navigator (bottom-left, autofade off), `maxZoomPixelRatio 8`, `minZoomImageRatio 0.5`, `zoomPerScroll 1.35`, `animationTime 0.9`. | Comparable; we keep our own React minimap and 4× max zoom (beyond 4× the render has no extra detail). |
+| Pixel smoothing | Smoothing toggled on **device** pixels: `imageZoom × devicePixelRatio < 1.01`. | **Adopted** in `App.tsx`: we used CSS pixels, which blurred 50–99% zoom on 2× screens. |
+| Labels / search | None. No POI labels, no search, no share state beyond `#z=&x=&y=`. | We are ahead (ranked search, close-zoom labels, filters, v2 share links). |
+| Interaction | 🎲 button / `R` key flies to a random one of 20 hard-coded landmarks using a **shuffle bag** (all visited before repeats), shows a 4.5 s badge; `F` fullscreen; `0` home. Portrait-mobile tuned fit rectangles. | **Adopted** the shuffle-bag random landmark (dice button + `R`), driven by our curated POIs instead of hand-tuned tile coordinates. Fullscreen not added (browser chrome already minimal). |
+| Renderer | No renderer code is public on the site. | No change to `tools/capital/scene.mjs`: nothing observed shows a clear improvement to our deterministic scene. |

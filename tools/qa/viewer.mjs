@@ -100,6 +100,38 @@ try {
   check('reset returns to home overview', Math.abs(zr - z0) < 1e-3, `${zr} vs home ${z0}`);
   check('fonts are local', fonts.length > 0 && fonts.every(u => u.startsWith(base)), `${fonts.length} font requests`);
 
+  // Random landmark (shuffle bag, R key) selects a curated place.
+  await page.keyboard.press('r'); await settle(page);
+  const rl = await state();
+  check('random landmark selects a curated place', !!rl.poi && meta.pois.some(p => p.id === rl.poi && p.curated), rl.poi);
+  await page.keyboard.press('Escape'); await page.keyboard.press('0'); await settle(page);
+
+  // Presence: two tabs (separate anonymous ids) see each other; visits counted.
+  const online = p => p.locator('[data-testid="online"]').textContent().then(Number).catch(() => 0);
+  await page.waitForSelector('.presence');
+  const second = await context.newPage(); await second.goto(`${base}/?map=${mapId}`); await second.waitForSelector('.presence');
+  await page.waitForFunction(() => Number(document.querySelector('[data-testid="online"]')?.textContent) >= 2, null, {timeout: 12000}).catch(() => null);
+  const faces = await page.locator('.presence .pixel-face').count();
+  check('presence shows both tabs with pixel faces', (await online(page)) >= 2 && (await online(second)) >= 2 && faces >= 2, `${await online(page)} online, ${faces} faces, ${await page.locator('[data-testid="visits"]').textContent()} visits`);
+
+  // Daily game: both tabs guess round 1; the second tab sees the first tab's guess and a shared board.
+  await page.keyboard.press('d'); await page.waitForSelector('.game-panel .clue img');
+  check('daily game shows a tile close-up clue', (await page.locator('.game-panel .clue img').count()) >= 1);
+  await page.click('[data-testid="guess"]'); await page.waitForSelector('.game-panel .answer');
+  await second.keyboard.press('d'); await second.waitForSelector('[data-testid="guess"]'); await second.click('[data-testid="guess"]');
+  await second.waitForSelector('.game-mark.other', {timeout: 12000}).catch(() => null);
+  const rows = await second.locator('.board-row').count();
+  check('multiplayer: second tab sees other guess and shared board', (await second.locator('.game-mark.other').count()) >= 1 && rows >= 2, `${rows} board rows`);
+  await second.screenshot({path: path.join(out, 'desktop-daily-game.png')});
+  await second.close(); await page.keyboard.press('Escape');
+
+  // No social server (static hosting / offline): map still works, counter hidden, game plays solo.
+  const solo = await context.newPage(); await solo.route('**/api/social/**', r => r.fulfill({status: 404, contentType: 'text/plain', body: ''}));
+  await solo.goto(`${base}/?map=${mapId}`); await solo.waitForSelector('.minimap-view'); await settle(solo);
+  await solo.keyboard.press('d'); await solo.waitForSelector('.game-panel');
+  check('offline: no presence chip, game still playable', (await solo.locator('.presence').count()) === 0 && (await solo.locator('.board-head').textContent()).includes('solo') && (await solo.locator('[data-testid="guess"]').count()) === 1);
+  await solo.close();
+
   // Missing tiles: drop every level-12 tile and expect a visible notice, not a crash.
   const broken = await context.newPage();
   await broken.route(`**/A_files/${Math.ceil(Math.log2(Math.max(meta.width, meta.height))) - 2}/**`, r => r.fulfill({status: 404, body: ''}));

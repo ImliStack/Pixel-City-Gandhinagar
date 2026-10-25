@@ -1,0 +1,14 @@
+export type Point = [number, number];
+export type PoolPoi = { id: string; name: string; image?: Point; kind?: string; curated?: boolean; category?: string; unnamed?: boolean };
+export const ROUNDS: number;
+export const MAX_SCORE: number;
+export function istDay(now?: number): string;
+export function hash32(text: string): number;
+export function rng(seed: number): () => number;
+export function puzzlePool<T extends PoolPoi>(pois: T[]): T[];
+export function dailyPuzzle<T extends PoolPoi>(pois: T[], day: string, rounds?: number): T[];
+export function groundMeters(a: Point, b: Point, transform?: { scale?: number; up?: number[] }): number;
+export function scoreFor(meters: number): number;
+export function scoreEmoji(score: number): string;
+export function formatDistance(meters: number): string;
+export function clueTiles(image: { width: number; height: number; tileSize: number; overlap: number }, point: Point, level: number, size: number): { file: string; left: number; top: number }[];

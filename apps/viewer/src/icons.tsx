@@ -1,4 +1,5 @@
-import type { ReactElement } from 'react';
+import { useMemo, type ReactElement } from 'react';
+import { avatarFor } from '../shared/avatar.mjs';
 // 12×12 pixel icons for POI categories. Each row is a string; '#' is ink, '.' is transparent.
 // Rendered as crisp-edged SVG rects so they stay pixel-exact at any device scale.
 const BITMAPS: Record<string, string[]> = {
@@ -67,4 +68,12 @@ export function PixelIcon({ category, size = 18, color }: { category?: string; s
   const rects: ReactElement[] = [];
   rows.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] === '#') rects.push(<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" />); });
   return <svg className="pixel-icon" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" aria-hidden="true"><g fill={fill}>{rects}</g></svg>;
+}
+
+// Deterministic 12×12 visitor face (see shared/avatar.mjs).
+export function PixelFace({ id, size = 22, title }: { id: string; size?: number; title?: string }) {
+  const { rows, palette } = useMemo(() => avatarFor(id), [id]);
+  const rects: ReactElement[] = [];
+  rows.forEach((row, y) => { for (let x = 0; x < row.length; x++) if (row[x] !== '.') rects.push(<rect key={`${x}-${y}`} x={x} y={y} width="1" height="1" fill={palette[row[x]]} />); });
+  return <svg className="pixel-face" width={size} height={size} viewBox="0 0 12 12" shapeRendering="crispEdges" role={title ? 'img' : undefined} aria-label={title} aria-hidden={title ? undefined : true}>{title && <title>{title}</title>}{rects}</svg>;
 }

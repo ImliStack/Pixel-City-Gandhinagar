@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
-import { Check, ChevronDown, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, X } from 'lucide-react';
+import { Check, ChevronDown, Dices, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
 import { isStreet, pointForPoi, searchPois, type Metadata, type Poi } from './types';
 import { readViewState, writeViewState, type Layer } from './state';
-import { PixelIcon, CATEGORY_COLOR } from './icons';
+import { PixelIcon, PixelFace, CATEGORY_COLOR } from './icons';
+import { useSocial } from './social';
+import { DailyGame } from './DailyGame';
 
 const DEFAULT_MAP = 'gandhinagar-city';
 // The historical Jaipur export stays at /map/; new city exports live under /maps/<id>/.
@@ -44,6 +46,9 @@ export default function App() {
   const [shareFallback, setShareFallback] = useState('');
   const [versionNotice, setVersionNotice] = useState('');
   const [debug, setDebug] = useState(false);
+  const [gameOpen, setGameOpen] = useState(false);
+  const social = useSocial();
+  const deckRef = useRef<Poi[]>([]);
   const [maps, setMaps] = useState<{ id: string; title?: string; subtitle?: string }[]>([]);
   useEffect(() => { fetch('/maps/index.json').then((r) => r.ok ? r.json() : []).then(setMaps).catch(() => setMaps([])); }, []);
   const [filters, setFilters] = useState<string[]>(() => readViewState(window.location.hash, mapId)?.filters || []);
@@ -133,9 +138,10 @@ export default function App() {
         setFrame((value) => value + 1);
         if (viewer.world.getItemCount()) {
           // Smooth when minified; nearest-neighbour at and above native pixels keeps detail crisp.
-          const imageZoom = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom());
-          if (smoothing !== (imageZoom < 1)) {
-            smoothing = imageZoom < 1;
+          // Device pixels, not CSS pixels: on a 2× screen an image pixel is already crisp from 50% zoom.
+          const devicePixels = viewer.viewport.viewportToImageZoom(viewer.viewport.getZoom()) * (window.devicePixelRatio || 1);
+          if (smoothing !== (devicePixels < 1)) {
+            smoothing = devicePixels < 1;
             viewer.drawer.setImageSmoothingEnabled(smoothing);
             viewer.forceRedraw();
           }
@@ -208,6 +214,19 @@ export default function App() {
     }
   }, []);
 
+  // Shuffle-bag tour of curated landmarks: every one is visited before any repeats.
+  const randomLandmark = useCallback(() => {
+    if (!metadata) return;
+    if (!deckRef.current.length) {
+      const deck = metadata.pois.filter((p) => p.curated && p.kind !== 'neighbourhood' && pointForPoi(p));
+      for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+      if (deck.length > 1 && deck[deck.length - 1].id === selectedRef.current) [deck[0], deck[deck.length - 1]] = [deck[deck.length - 1], deck[0]];
+      deckRef.current = deck;
+    }
+    const next = deckRef.current.pop();
+    if (next) choosePoi(next);
+  }, [metadata, choosePoi]);
+
   const results = useMemo(() => {
     if (!metadata) return [];
     const term = query.trim();
@@ -224,9 +243,11 @@ export default function App() {
       else if (event.key === '-') { event.preventDefault(); zoom(1 / 1.4); }
       else if (event.key === '0' || event.key === 'Home') { event.preventDefault(); reset(); }
       else if (event.key.toLowerCase() === 'g') setDebug((value) => !value);
+      else if (event.key.toLowerCase() === 'r') randomLandmark();
+      else if (event.key.toLowerCase() === 'd') { setGameOpen((value) => !value); setSelectedId(null); }
       else if (event.key === '?') setInfoOpen((value) => !value);
       else if (event.key === '/') { event.preventDefault(); searchRef.current?.focus(); }
-      else if (event.key === 'Escape') { setSelectedId(null); setLayersOpen(false); setShareFallback(''); }
+      else if (event.key === 'Escape') { setSelectedId(null); setLayersOpen(false); setShareFallback(''); setGameOpen(false); }
       else if (event.key.startsWith('Arrow')) {
         const viewer = viewerRef.current;
         if (!viewer?.world.getItemCount()) return;
@@ -238,7 +259,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [zoom, reset, infoOpen]);
+  }, [zoom, reset, infoOpen, randomLandmark]);
 
   const share = async () => {
     const link = persistView();
@@ -355,6 +376,13 @@ export default function App() {
       </ul>}
     </div>
 
+    {!social.offline && social.snap && <div className="presence" aria-label={`${social.snap.onlineCount} on the map now, ${social.snap.visits} visits`}>
+      <span className="faces">{social.snap.online.slice(0, 5).map((id) => <PixelFace key={id} id={id} size={22} title={id === social.id ? 'You' : 'Another visitor'} />)}{social.snap.onlineCount > 5 && <b>+{social.snap.onlineCount - 5}</b>}</span>
+      <span className="counts"><strong data-testid="online">{social.snap.onlineCount}</strong> here now · <span data-testid="visits">{social.snap.visits.toLocaleString('en-IN')}</span> visits</span>
+    </div>}
+
+    {gameOpen && metadata && <DailyGame metadata={metadata} base={base} viewer={ready ? viewer : null} screenPoint={screenPoint} me={social.id} snap={social.snap} offline={social.offline} sendGuess={social.sendGuess} onClose={() => setGameOpen(false)} />}
+
     {!!metadata?.categories?.length && <div ref={placesRef} className={`places ${placesOpen ? 'open' : ''}`}>
       <button className="places-toggle" aria-expanded={placesOpen} aria-controls="places-panel" onClick={() => setPlacesOpen(!placesOpen)}>
         <MapPin size={15} /><span>Places</span>
@@ -378,6 +406,8 @@ export default function App() {
       <button onClick={() => zoom(1.6)} aria-label="Zoom in" title="Zoom in (+)"><Plus size={19} /></button>
       <button onClick={() => zoom(1 / 1.6)} aria-label="Zoom out" title="Zoom out (−)"><Minus size={19} /></button>
       <button onClick={reset} aria-label="Reset map" title="Reset view (0)"><LocateFixed size={18} /></button>
+      <button onClick={randomLandmark} aria-label="Random landmark" title="Random landmark (R)" disabled={!ready}><Dices size={18} /></button>
+      <button onClick={() => { setGameOpen(!gameOpen); setSelectedId(null); }} aria-label="Daily landmark game" aria-pressed={gameOpen} className={gameOpen ? 'active' : ''} title="Find the landmark — daily game (D)" disabled={!ready}><Target size={18} /></button>
       <button onClick={share} aria-label="Copy link to this view" title="Share view" disabled={!ready}>{copied ? <Check size={18} /> : <Share2 size={18} />}</button>
       <button onClick={() => setLayersOpen(!layersOpen)} aria-label="Map layers" aria-expanded={layersOpen} title="Layers"><Layers size={18} /></button>
       <button onClick={() => setInfoOpen(true)} aria-label="About this map" title="About (?)"><Info size={18} /></button>
@@ -413,12 +443,12 @@ export default function App() {
     {infoOpen && <div className="modal-scrim" onClick={(e) => { if (e.target === e.currentTarget) setInfoOpen(false); }}><section className="about" role="dialog" aria-modal="true" aria-labelledby="about-title">
       <button className="close" onClick={() => setInfoOpen(false)} aria-label="Close" autoFocus><X size={18} /></button>
       <h2 id="about-title">{metadata?.title || 'Indian Pixel City'}</h2>
-      <p>{metadata?.subtitle}. Rendered on this machine from OpenStreetMap data; all tiles, search and fonts are local.</p>
+      <p>{metadata?.subtitle}. Rendered on this machine from OpenStreetMap data; all tiles, search and fonts are local. The visitor counter and daily game talk only to this site's own server, with anonymous per-tab ids (no IPs or cookies).</p>
       <p><strong>Geometry.</strong> {metadata?.geometryNote}</p>
       <p><strong>Art status.</strong> {metadata?.artNote || 'Deterministic render only.'}</p>
       <p><strong>Coverage.</strong> {metadata?.coverage?.note || 'The dashed line marks the working extent.'}</p>
       {maps.length > 1 && <p><strong>Maps on this machine.</strong> {maps.map((m, i) => <span key={m.id}>{i ? ' · ' : ''}{m.id === mapId ? <b>{m.subtitle || m.id}</b> : <a href={`/?map=${encodeURIComponent(m.id)}`}>{m.subtitle || m.id}</a>}</span>)} · <a href="/?map=jaipur">Jaipur (historical)</a></p>}
-      <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · arrows pan · <kbd>G</kbd> debug</p>
+      <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · <kbd>R</kbd> random landmark · <kbd>D</kbd> daily game · arrows pan · <kbd>G</kbd> debug</p>
       <p className="fine">{metadata?.attribution}</p>
     </section></div>}
   </main>;
