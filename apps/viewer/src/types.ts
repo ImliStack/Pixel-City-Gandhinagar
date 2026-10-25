@@ -27,6 +27,9 @@ export type Metadata = {
   subtitle?: string;
   width: number;
   height: number;
+  tileSize?: number;
+  overlap?: number;
+  format?: string;
   dzi: string;
   layers?: Partial<Record<'A' | 'B' | 'source' | 'night' | 'monsoon' | 'winter', { dzi: string; label?: string; group?: 'scene' | 'style' }>>;
   categories?: { id: string; label: string; count: number }[];

@@ -11,7 +11,6 @@ await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('vite
 const poi = id => meta.pois.find(p => p.id === id);
 const at = (id, z, layer = 'A', extra = '') => { const p = poi(id); return p ? `#v=2&m=${mapId}&l=${layer}&cx=${p.image[0].toFixed(1)}&cy=${p.image[1].toFixed(1)}&z=${z}${extra}` : null; };
 const layers = Object.keys(meta.layers);
-const shots0 = () => `#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.03`;
 const shots = [
   ['overview', `#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.0175`],
   ['capital-complex', at('vidhan-sabha', 0.45)],
@@ -20,7 +19,7 @@ const shots = [
   ['sector-housing', at('sector-17', 0.6) || at('sector-18', 0.6)],
   ['metro', at('metro-line-2', 0.9)],
   ['places', `#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.03&f=hospital,fuel,school,bank`, 'places'],
-  ['daily-game', at('vidhan-sabha', 0.02) || shots0(), 'daily'],
+  ['daily-game', at('vidhan-sabha', 0.02), 'daily'],
   ['presence', at('vidhan-sabha', 0.3), 'presence'],
   ...['night', 'monsoon', 'winter'].filter(l => layers.includes(l)).map(l => [l, at('vidhan-sabha', 0.55, l)]),
 ].filter(s => s[1]);

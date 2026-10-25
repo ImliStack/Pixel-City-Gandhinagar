@@ -36,8 +36,8 @@ export function DailyGame({ metadata, base, viewer, screenPoint, me, snap, offli
   const total = results.reduce((s, r) => s + (r?.score || 0), 0);
   const maxLevel = Math.ceil(Math.log2(Math.max(metadata.width, metadata.height)));
   const tileDir = `${base}${(metadata.layers?.A?.dzi || metadata.dzi).replace(/\.dzi$/, '')}_files/`;
-  const tiles = target?.image ? clueTiles({ width: metadata.width, height: metadata.height, tileSize: (metadata as { tileSize?: number }).tileSize || 512, overlap: (metadata as { overlap?: number }).overlap ?? 1 }, target.image, maxLevel - 2, CLUE) : [];
-  const ext = (metadata as { format?: string }).format || 'webp';
+  const tiles = target?.image ? clueTiles({ width: metadata.width, height: metadata.height, tileSize: metadata.tileSize || 512, overlap: metadata.overlap ?? 1 }, target.image, maxLevel - 2, CLUE) : [];
+  const ext = metadata.format || 'webp';
 
   const center = (): Point | null => {
     if (!viewer?.world.getItemCount()) return null;

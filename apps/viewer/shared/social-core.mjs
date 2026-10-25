@@ -25,8 +25,8 @@ export function createRoom({ ttl = 15000, now = Date.now, state } = {}) {
   function beat(body) {
     if (!body || typeof body !== 'object' || !ID.test(body.id)) return { status: 400, json: { error: 'bad id' } };
     prune();
-    const changed = { dirty: false };
-    if (body.hello === true) { visits++; changed.dirty = true; }
+    let dirty = false;
+    if (body.hello === true) { visits++; dirty = true; }
     if (body.bye === true) seen.delete(body.id); else seen.set(body.id, now());
     const g = body.guess;
     if (g && typeof g === 'object' && g.day === day && Number.isInteger(g.round) && g.round >= 0 && g.round < ROUNDS
@@ -36,10 +36,10 @@ export function createRoom({ ttl = 15000, now = Date.now, state } = {}) {
       // First guess per round wins: no retries after seeing the answer.
       if (rounds && !rounds[g.round]) {
         rounds[g.round] = { x: Math.round(Math.max(-1e6, Math.min(1e6, g.x))), y: Math.round(Math.max(-1e6, Math.min(1e6, g.y))), score: Math.round(Math.max(0, Math.min(MAX_SCORE, g.score))) };
-        changed.dirty = true;
+        dirty = true;
       }
     }
-    return { status: 200, json: snapshot(body.id), dirty: changed.dirty };
+    return { status: 200, json: snapshot(body.id), dirty };
   }
 
   function snapshot(viewer) {

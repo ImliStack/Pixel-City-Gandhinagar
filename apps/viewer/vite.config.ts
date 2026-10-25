@@ -8,10 +8,9 @@ function socialDevServer(): Plugin {
   const middleware = (req: any, res: any, next: () => void) => {
     const url = new URL(req.url || '/', 'http://local');
     if (!url.pathname.startsWith('/api/social/')) return next();
-    const readBody = () => new Promise<string>((resolve, reject) => { let text = ''; req.on('data', (c: { toString(): string }) => { text += c.toString(); if (text.length > 4096) req.destroy(); }); req.on('end', () => resolve(text)); req.on('error', reject); });
-    handle(room, req.method || 'GET', url.pathname, readBody).then(({ status, json }) => {
-      res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store'); res.end(JSON.stringify(json));
-    });
+    const readBody = () => new Promise<string>((resolve, reject) => { let text = ''; req.on('data', (c: { toString(): string }) => { text += c.toString(); if (text.length > 4096) { req.destroy(); reject(new Error('too large')); } }); req.on('end', () => resolve(text)); req.on('error', reject); });
+    const send = (status: number, json: unknown) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store'); res.end(JSON.stringify(json)); };
+    handle(room, req.method || 'GET', url.pathname, readBody).then(({ status, json }) => send(status, json), () => send(400, { error: 'bad request' }));
   };
   return { name: 'pixel-city-social', configureServer: (s) => { s.middlewares.use(middleware); }, configurePreviewServer: (s) => { s.middlewares.use(middleware); } };
 }
