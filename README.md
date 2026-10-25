@@ -11,12 +11,15 @@ position from OpenStreetMap, in a fixed bird's-eye view. Fly from the full city 
 temple roof, switch between summer, monsoon, winter and night, and find petrol pumps, hospitals,
 schools or metro stations with pixel-icon filters. It runs locally, with no map service and no API key.
 
+### [▶ Open the live map](https://pixel-city-gandhinagar.imlistack.workers.dev)
+
 [![React 19](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react&logoColor=white)](https://react.dev)
 [![three.js](https://img.shields.io/badge/three.js-r180-000000?style=flat-square&logo=three.js&logoColor=white)](https://threejs.org)
 [![OpenSeadragon](https://img.shields.io/badge/OpenSeadragon-5-2a6f97?style=flat-square)](https://openseadragon.github.io)
 [![Vite 6](https://img.shields.io/badge/Vite-6-646cff?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev)
 [![Node ≥ 22.13](https://img.shields.io/badge/node-%E2%89%A5%2022.13-3c873a?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org)
 [![Data: OpenStreetMap](https://img.shields.io/badge/data-OpenStreetMap_ODbL-7ebc6f?style=flat-square&logo=openstreetmap&logoColor=white)](https://www.openstreetmap.org/copyright)
+[![Live demo](https://img.shields.io/badge/live-workers.dev-f38020?style=flat-square&logo=cloudflare&logoColor=white)](https://pixel-city-gandhinagar.imlistack.workers.dev)
 [![Runs offline](https://img.shields.io/badge/runtime-100%25_local-f2b33d?style=flat-square)](#-how-it-works)
 
 [How close is it?](#-how-close-is-it-to-the-real-gandhinagar) · [Features](#-features) · [Quick start](#-quick-start) · [Shortcuts](#-keyboard-shortcuts) · [How it works](#-how-it-works) · [Project structure](#-project-structure) · [Roadmap](#-roadmap)
@@ -173,6 +176,8 @@ npm run dev                 # → http://127.0.0.1:5173
 
 `npm run dev` also serves the presence and daily-game API (`/api/social/beat`, in memory). Open two tabs to see two faces and play against yourself.
 
+**Live:** https://pixel-city-gandhinagar.imlistack.workers.dev
+
 **Deploying (Cloudflare).** Tiles go to R2, and the viewer plus presence/game API go to one Worker with a Durable Object. Step-by-step guide: [deploy/cloudflare/README.md](deploy/cloudflare/README.md). In short: run `npx wrangler login`, then upload `outputs/maps` to R2 with `rclone`, then run `npm run deploy`.
 
 The exported map in `outputs/maps/gandhinagar-city` opens straight away. To rebuild it from source:
@@ -272,7 +277,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
 | OSM2World comparison | ⚠️ investigated earlier, timed out; the Three.js renderer is used instead |
 | Visitor presence + daily multiplayer game | ✅ done locally — Cloudflare Worker + Durable Object written and unit-tested, not deployed yet |
-| Public hosting (Cloudflare R2 + Worker) | 🟡 deploy-ready — Worker, R2 tile route and guide in `deploy/cloudflare/README.md`; needs your Cloudflare account to run |
+| Public hosting (Cloudflare R2 + Worker) | ✅ live — [pixel-city-gandhinagar.imlistack.workers.dev](https://pixel-city-gandhinagar.imlistack.workers.dev) |
 
 ## ✦ Roadmap
 
