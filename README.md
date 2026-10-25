@@ -34,7 +34,7 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
 <div align="center">
 <img src="docs/demo.gif" alt="Indian Pixel City demo: city overview, zoom into the sectors, Akshardham, the capital complex, night, place filters, minimap jump" width="100%" />
 <br />
-<sub>24-second highlight: city overview → sectors → Akshardham → capital complex · <a href="docs/demo.mp4">full 45-second MP4</a> adds night, place filters and a minimap jump</sub>
+<sub>24-second highlight: city overview → sectors → Akshardham → capital complex · <a href="docs/demo.mp4">full 49-second MP4</a> adds night, place filters and a minimap jump</sub>
 <br /><br />
 <img src="docs/night.gif" alt="Summer day cross-fades to night around Akshardham; headlights and tail lights flow along real roads, windows and street lamps flicker" width="100%" />
 <br />
@@ -266,7 +266,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
 | Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 39/39 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
-| 30–40 s navigation demo | ✅ done (45 s MP4 + 24 s GIF) |
+| 30–40 s navigation demo | ✅ done (49 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
 | OSM2World comparison | ⚠️ investigated earlier, timed out; the Three.js renderer is used instead |
 | Visitor presence + daily multiplayer game | ✅ done locally — Cloudflare Worker + Durable Object written and unit-tested, not deployed yet |
