@@ -27,11 +27,11 @@ try {
   for (const [ctxName, opts] of [['desktop', {viewport: {width: 1440, height: 900}, deviceScaleFactor: 1}], ['mobile', {viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true, deviceScaleFactor: 2}]]) {
     const ctx = await browser.newContext(opts);
     await ctx.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });
-    const page = await ctx.newPage();
     for (const [name, hash, action] of ctxName === 'desktop' ? shots : [['mobile', shots[1][1]]]) {
+      const page = await ctx.newPage(); // fresh page: a hash-only change would keep the previous layer and panels
       await page.goto(`${base}/?map=${mapId}${hash}`); await page.waitForSelector('.minimap-view', {timeout: 30000}); await page.waitForTimeout(3500);
       if (action === 'places') { await page.click('.places-toggle'); await page.waitForTimeout(500); }
-      await page.screenshot({path: `${out}/${name}.jpg`, type: 'jpeg', quality: 86}); console.log('shot', name);
+      await page.screenshot({path: `${out}/${name}.jpg`, type: 'jpeg', quality: 86}); console.log('shot', name); await page.close();
     }
     await ctx.close();
   }

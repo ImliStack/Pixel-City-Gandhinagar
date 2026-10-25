@@ -68,8 +68,9 @@ try {
   await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Summer day")'); await settle(page);
 
   // Category filter: a chip toggles pixel-icon pins and is stored in the share hash.
+  await page.keyboard.press('0'); await settle(page); // whole city in view, so some category pins are on screen
   await page.click('.places-toggle');
-  const chip = page.locator('.places-grid button').first(), chipName = (await chip.textContent()) || '';
+  const chip = page.locator('.places-grid button', {hasText: 'Hospitals'}).first(), chipName = (await chip.textContent()) || '';
   await chip.click(); await page.waitForTimeout(400);
   const fState = await state();
   check('category chip filters and persists', !!fState.f && (await page.locator('.map-pin.icon-pin').count()) > 0 && (await page.locator('.map-pin.icon-pin .pixel-icon').count()) > 0, `${chipName} → f=${fState.f}`);
@@ -85,6 +86,7 @@ try {
   await page.screenshot({path: path.join(out, 'desktop-night.png')});
   await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Summer day")'); await settle(page);
   // Minimap click recentres the map at the corresponding image position.
+  await page.mouse.move(720, 450); for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, -120); await page.waitForTimeout(60); } await settle(page);
   const mm = await page.locator('.minimap-frame').boundingBox();
   await page.mouse.click(mm.x + mm.width * 0.75, mm.y + mm.height * 0.25); await settle(page);
   const m = await state();

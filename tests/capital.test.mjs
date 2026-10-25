@@ -112,7 +112,7 @@ test('Viewer metadata: POIs inside image, coverage polygon, honest art status', 
 test('URL view state: v2 round trip and v1 legacy restore', async () => {
   const src = ts.transpileModule(fs.readFileSync('apps/viewer/src/state.ts', 'utf8'), {compilerOptions: {module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022}}).outputText;
   const {readViewState, writeViewState} = await import(`data:text/javascript,${encodeURIComponent(src)}`);
-  const s = {version: 2, map: cfg.mapId, imageVersion: meta.version, layer: 'B', cx: 2063.6, cy: 5074.3, zoom: 1, selected: 'vidhan-sabha'};
+  const s = {version: 2, map: cfg.mapId, imageVersion: meta.version, layer: 'night', cx: 2063.6, cy: 5074.3, zoom: 1, selected: 'vidhan-sabha', filters: ['hospital', 'fuel']};
   const back = readViewState(writeViewState(s), 'x');
   assert.deepEqual({...back, legacyViewportZoom: undefined}, {...s, legacyViewportZoom: undefined});
   assert.equal(back.legacyViewportZoom, false);

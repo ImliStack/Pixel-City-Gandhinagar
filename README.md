@@ -34,7 +34,7 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
 <div align="center">
 <img src="docs/demo.gif" alt="Indian Pixel City demo: city overview, zoom into the sectors, Akshardham, the capital complex, night, place filters, minimap jump" width="100%" />
 <br />
-<sub>City overview → sectors → Akshardham → capital complex → night → place filters → minimap · <a href="docs/demo.mp4">full-quality MP4</a></sub>
+<sub>24-second highlight: city overview → sectors → Akshardham → capital complex · <a href="docs/demo.mp4">full 45-second MP4</a> adds night, place filters and a minimap jump</sub>
 </div>
 
 ## ✦ At a glance
@@ -133,7 +133,8 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 > **Requires** Node.js 22.13+, Python 3.9+ and Google Chrome. FFmpeg is needed only for the demo video.
 
 ```bash
-cd "Indian Pixel City"
+git clone https://github.com/ImliStack/Pixel-City-Gandhinagar-.git "Pixel City Gandhinagar"
+cd "Pixel City Gandhinagar"
 npm ci
 python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.lock.txt
 npm run dev                 # → http://127.0.0.1:5173
@@ -215,6 +216,24 @@ If it isn't in OpenStreetMap it isn't drawn — Indian Pixel City never invents 
 <br />
 Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the downloaded OSM extract, so neither can be found. The Airport filter appears automatically on maps that include one.
 </details>
+
+## ✦ Status against the original brief
+
+| Brief item | Status |
+|---|---|
+| Verified geographic pipeline (OSM fetch, UTM projection, repair, audit) | ✅ done — 16 hashed Overpass tiles, 36,335 elements |
+| One global orthographic lattice, resumable padded chunks with config/scene/code hashes | ✅ done — real interrupt → resume gave bit-identical chunks |
+| Bounded memory, measured timing and RSS | ✅ done — ≤ 1.63 GiB peak, 12–21 min per city layer |
+| A stylised render, B restrained pixel/edge treatment | ✅ done, plus night / monsoon / winter |
+| C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
+| Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
+| DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 24/24 |
+| Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
+| 30–40 s navigation demo | ✅ done (45 s MP4 + 24 s GIF) |
+| Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
+| OSM2World comparison | ⚠️ investigated earlier, timed out; the Three.js renderer is used instead |
+| Public hosting (Cloudflare R2 + Pages) | ⏳ planned — needs your Cloudflare account; tiles ≈ 3.5 GB |
 
 ## ✦ Roadmap
 

@@ -48,9 +48,9 @@ try {
   const webm = await video.path(), mp4 = path.join(out, 'navigation-demo.mp4');
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', webm, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-movflags', '+faststart', mp4]);
   fs.renameSync(webm, path.join(out, 'navigation-demo.webm'));
-  // README GIF: 960 px, 12 fps, palette per clip.
+  // README GIF: 640 px, 8 fps, palette per clip.
   fs.mkdirSync('docs', {recursive: true}); fs.copyFileSync(mp4, 'docs/demo.mp4');
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-vf', 'fps=12,scale=960:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=192[p];[b][p]paletteuse=dither=bayer:bayer_scale=4', 'docs/demo.gif']);
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', mp4, '-vf', 'fps=8,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle', 'docs/demo.gif']);
   const duration = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4], {encoding: 'utf8'}));
   fs.writeFileSync(path.join(out, 'demo.json'), JSON.stringify({file: mp4, durationSeconds: duration, viewport: size, chapters: marks, externalRequests: external, recordedWith: 'Playwright recordVideo, headless Chrome, local Vite dev server'}, null, 2));
   console.log(JSON.stringify({mp4, duration, chapters: marks.length, external: external.length}));
