@@ -1,5 +1,5 @@
-# Presence + daily game Worker. Deploy: npx wrangler deploy --config deploy/cloudflare/wrangler.toml
-# Tiles go to R2 (see README "Deploying"); the viewer build (apps/viewer/dist) is served as static assets.
+# Pixel City Gandhinagar on Cloudflare: viewer (static assets) + tiles (R2) + presence/game (Durable Object).
+# Full steps: deploy/cloudflare/README.md. Deploy: npm run deploy
 name = "pixel-city-gandhinagar"
 main = "worker.mjs"
 compatibility_date = "2026-09-01"
@@ -8,6 +8,11 @@ compatibility_date = "2026-09-01"
 directory = "../../apps/viewer/dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+run_worker_first = ["/api/*", "/maps/*", "/map/*"]
+
+[[r2_buckets]]
+binding = "TILES"
+bucket_name = "pixel-city-tiles"
 
 [[durable_objects.bindings]]
 name = "CITY_ROOM"

@@ -173,7 +173,7 @@ npm run dev                 # → http://127.0.0.1:5173
 
 `npm run dev` also serves the presence and daily-game API (`/api/social/beat`, in memory). Open two tabs to see two faces and play against yourself.
 
-**Deploying (Cloudflare).** `npm run build`, upload `outputs/maps/` to R2 (or Pages assets), then `npx wrangler deploy --config deploy/cloudflare/wrangler.toml`. The Worker routes `/api/social/*` to one Durable Object, which keeps live presence in memory and stores visits and today's board in its storage. An optional KV mirror holds the visit total. The protocol and room logic are the same module the dev server uses (`apps/viewer/shared/social-core.mjs`).
+**Deploying (Cloudflare).** Tiles go to R2, and the viewer plus presence/game API go to one Worker with a Durable Object. Step-by-step guide: [deploy/cloudflare/README.md](deploy/cloudflare/README.md). In short: run `npx wrangler login`, then upload `outputs/maps` to R2 with `rclone`, then run `npm run deploy`.
 
 The exported map in `outputs/maps/gandhinagar-city` opens straight away. To rebuild it from source:
 
@@ -272,7 +272,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
 | OSM2World comparison | ⚠️ investigated earlier, timed out; the Three.js renderer is used instead |
 | Visitor presence + daily multiplayer game | ✅ done locally — Cloudflare Worker + Durable Object written and unit-tested, not deployed yet |
-| Public hosting (Cloudflare R2 + Pages) | ⏳ planned — needs your Cloudflare account; tiles ≈ 3.5 GB |
+| Public hosting (Cloudflare R2 + Worker) | 🟡 deploy-ready — Worker, R2 tile route and guide in `deploy/cloudflare/README.md`; needs your Cloudflare account to run |
 
 ## ✦ Roadmap
 

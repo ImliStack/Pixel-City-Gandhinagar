@@ -115,3 +115,24 @@ test('Cloudflare worker routes to the Durable Object and persists', async () => 
   assert.equal(kv.get('total'), '1');
   assert.equal((await worker.fetch(new Request('https://x.dev/other'), env)).status, 404);
 });
+
+test('Cloudflare worker serves tiles from R2 with cache headers and falls back to assets', async () => {
+  const store = new Map();
+  globalThis.caches = { default: { match: async (r) => store.get(r.url), put: async (r, res) => { store.set(r.url, res); } } };
+  const objects = { 'maps/gandhinagar-city/A_files/16/3_4.webp': 'WEBP', 'maps/gandhinagar-city/metadata.json': '{}' };
+  const env = {
+    TILES: { get: async (k) => (k in objects ? { body: objects[k], httpEtag: '"e"' } : null) },
+    ASSETS: { fetch: async () => new Response('index', { status: 200 }) },
+  };
+  const ctx = { waitUntil: (p) => p };
+  const tile = await worker.fetch(new Request('https://x.dev/maps/gandhinagar-city/A_files/16/3_4.webp'), env, ctx);
+  assert.equal(tile.status, 200);
+  assert.equal(tile.headers.get('content-type'), 'image/webp');
+  assert.match(tile.headers.get('cache-control'), /immutable/);
+  const meta = await worker.fetch(new Request('https://x.dev/maps/gandhinagar-city/metadata.json'), env, ctx);
+  assert.equal(meta.headers.get('content-type'), 'application/json');
+  assert.match(meta.headers.get('cache-control'), /max-age=3600/);
+  assert.equal((await worker.fetch(new Request('https://x.dev/maps/nope.webp'), env, ctx)).status, 404);
+  assert.equal(await (await worker.fetch(new Request('https://x.dev/'), env, ctx)).text(), 'index');
+  delete globalThis.caches;
+});

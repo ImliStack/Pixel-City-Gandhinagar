@@ -2,6 +2,8 @@ import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createRoom, handle } from './shared/social-core.mjs';
 
+const deployBuild = !!(globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.DEPLOY_BUILD;
+
 // Local stand-in for the Cloudflare presence Worker: same protocol, in-memory counts.
 function socialDevServer(): Plugin {
   const room = createRoom();
@@ -20,5 +22,8 @@ export default defineConfig({
   plugins: [react(), socialDevServer()],
   server: { host: '127.0.0.1', port: 5173, strictPort: true },
   preview: { host: '127.0.0.1', port: 4173, strictPort: true },
-  build: { outDir: 'dist', sourcemap: true },
+  // DEPLOY_BUILD=1 leaves public/ (the 3.5 GB tile symlinks) out of dist: in production the tiles live in R2
+  // and the Cloudflare Worker serves them at the same /maps/... paths.
+  publicDir: deployBuild ? false : 'public',
+  build: { outDir: 'dist', sourcemap: !deployBuild, emptyOutDir: true },
 });

@@ -18,6 +18,8 @@
     "export-motion": "node tools/city/motion-export.mjs",
     "dev": "vite --config apps/viewer/vite.config.ts --host 127.0.0.1",
     "build": "tsc --noEmit -p apps/viewer/tsconfig.json && vite build --config apps/viewer/vite.config.ts",
+    "build:deploy": "tsc --noEmit -p apps/viewer/tsconfig.json && DEPLOY_BUILD=1 vite build --config apps/viewer/vite.config.ts",
+    "deploy": "npm run build:deploy && npx wrangler deploy --config deploy/cloudflare/wrangler.toml",
     "verify": "node --test tests/*.test.mjs && .venv/bin/python -m unittest discover -s tests -p 'test_*.py'",
     "verify:browser": "node tools/qa/viewer.mjs",
     "demo": "node tools/qa/demo.mjs",
