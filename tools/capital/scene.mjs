@@ -5,6 +5,8 @@ import * as T from 'three';
 import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPixelatedPass} from 'three/addons/postprocessing/RenderPixelatedPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
+import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
+import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 const q=new URLSearchParams(location.search),stage=s=>console.log('[scene]',s,Math.round(performance.now()));
 const data=await(await fetch(q.get('scene')||'/outputs/capital/scene.json')).json(),cfg=data.config;
@@ -382,7 +384,16 @@ for(const {color,parts,cast}of batches.values()){for(let i=0;i<parts.length;i+=4
 batches.clear();
 if(glowParts.length){const gm=new T.Mesh(mergeGeometries(glowParts,false),new T.MeshBasicMaterial({vertexColors:true,transparent:true,blending:T.AdditiveBlending,depthWrite:false}));gm.renderOrder=2;scene.add(gm);counts.lightPools=glowParts.length;}stage('merged');
 const ext=renderer.getContext().getExtension('WEBGL_debug_renderer_info');
-let composer;if(treatment){composer=new EffectComposer(renderer);composer.addPass(new RenderPixelatedPass(1,scene,camera,{normalEdgeStrength:cfg.treatmentB?.normalEdgeStrength??.16,depthEdgeStrength:cfg.treatmentB?.depthEdgeStrength??.2}));composer.addPass(new OutputPass());}
+// Ambient occlusion (detail layers): ground-truth AO in screen space, radius in metres. Its denoise noise is
+// built with Math.random, so it is seeded here: every region page must produce identical pixels.
+const ao=detail&&cfg.ambientOcclusion!==false;
+let composer;if(treatment||ao){composer=new EffectComposer(renderer);
+ if(treatment)composer.addPass(new RenderPixelatedPass(1,scene,camera,{normalEdgeStrength:cfg.treatmentB?.normalEdgeStrength??.16,depthEdgeStrength:cfg.treatmentB?.depthEdgeStrength??.2}));else composer.addPass(new RenderPass(scene,camera));
+ if(ao){const seeded=random(7331),realRandom=Math.random;Math.random=seeded;const pass=new GTAOPass(scene,camera,512,512);Math.random=realRandom;
+  pass.updateGtaoMaterial({radius:12,distanceExponent:1.6,thickness:8,scale:1.6,samples:16,distanceFallOff:1,screenSpaceRadius:false});
+  pass.updatePdMaterial({lumaPhi:10,depthPhi:2,normalPhi:3,radius:6,radiusExponent:1,rings:2,samples:16});
+  pass.blendIntensity=night?.55:.9;if(q.get("aoDebug"))pass.output=GTAOPass.OUTPUT.AO;composer.addPass(pass);}
+ composer.addPass(new OutputPass());}
 window.sceneReady={mode,counts,transform,view,shadow:{halfExtent:shadowHalf,mapSize:shadowSize,texelMetres:texel,type:'PCFSoftShadowMap',lattice:'snapped to global light-space texel grid per chunk'},sourceHash:data.sourceHash,renderer:ext?renderer.getContext().getParameter(ext.UNMASKED_RENDERER_WEBGL):'WebGL',three:T.REVISION,model:null};
 // Render image-space rectangle [x,y,w,h] of the global lattice with padding; shadow camera follows the chunk on a fixed texel grid.
 window.renderChunk=async(x=0,y=0,w=cfg.width,h=cfg.height,padding=0)=>{
