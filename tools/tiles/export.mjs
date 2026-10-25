@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import sharp from 'sharp';
+const config=JSON.parse(fs.readFileSync('config/pilot.json'));
+const input='outputs/render/pilot.png', output='outputs/map';fs.mkdirSync(output,{recursive:true});
+sharp.cache({memory:64,files:20,items:50});sharp.concurrency(2);
+await sharp(input,{limitInputPixels:config.maxOutputPixels}).png().tile({size:config.tileSize,overlap:config.tileOverlap,layout:'dz',container:'fs',depth:'onepixel'}).toFile(path.join(output,'pilot'));
+fs.copyFileSync('outputs/render/metadata.json',path.join(output,'metadata.json'));
+await sharp(input).resize(640).png().toFile(path.join(output,'overview.png'));
+fs.writeFileSync(path.join(output,'ATTRIBUTION.txt'),'© OpenStreetMap contributors. OpenStreetMap database licensed under ODbL 1.0. https://www.openstreetmap.org/copyright\nProduced work: original deterministic artistic rendering. Estimated heights, flat ground, reconstructed landmarks.\n');
+const publicDir='apps/viewer/public';fs.mkdirSync(publicDir,{recursive:true});const link=path.join(publicDir,'map');
+if(!fs.existsSync(link))fs.symlinkSync(path.relative(publicDir,output),link,'dir');
+let bytes=0,count=0;function walk(p){for(const e of fs.readdirSync(p,{withFileTypes:true})){const q=path.join(p,e.name);if(e.isDirectory())walk(q);else{bytes+=fs.statSync(q).size;count++;}}}walk(output);
+fs.writeFileSync('outputs/export-report.json',JSON.stringify({tileSize:config.tileSize,overlap:config.tileOverlap,bytes,files:count,peakRssBytes:process.resourceUsage().maxRSS*1024},null,2));
+console.log(`Exported ${count} local files, ${(bytes/1048576).toFixed(2)} MiB to ${output}`);

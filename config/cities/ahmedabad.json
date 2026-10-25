@@ -1,0 +1,39 @@
+{
+  "version": "ahmedabad-unbuilt",
+  "width": 6144,
+  "height": 6144,
+  "centerWorld": [
+    0,
+    0
+  ],
+  "pixelsPerMetre": 5,
+  "camera": {
+    "azimuth": 25,
+    "elevation": 55
+  },
+  "light": {
+    "east": -180,
+    "north": -220,
+    "up": 420
+  },
+  "shadowMapSize": 4096,
+  "renderPadding": 160,
+  "seed": 2031,
+  "terrain": "flat ground z=0",
+  "location": "ahmedabad template; acquire and audit data before rendering",
+  "model": null,
+  "style": "original detailed geometric illustration; visual milestone not yet passed",
+  "contextRadius": 1200,
+  "treeRadius": 1150,
+  "groundSize": 3200,
+  "shadowExtent": 1350,
+  "input": "data/processed/ahmedabad/pilot.json",
+  "output": "outputs/ahmedabad",
+  "chunkSize": 1024,
+  "maxOutputPixels": 40000000,
+  "tileSize": 512,
+  "tileOverlap": 1,
+  "city": "Ahmedabad",
+  "referenceVideo": "/Users/shanky/Desktop/rJ_6Wzts91x6J0kx.mp4",
+  "focalAsset": null
+}

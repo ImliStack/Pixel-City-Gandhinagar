@@ -1,0 +1,150 @@
+{
+  "version": "gandhinagar-capital-v1",
+  "width": 6144,
+  "height": 6144,
+  "centerWorld": [
+    -350,
+    450
+  ],
+  "pixelsPerMetre": 5,
+  "camera": {
+    "azimuth": 25,
+    "elevation": 55
+  },
+  "light": {
+    "east": -180,
+    "north": -220,
+    "up": 420
+  },
+  "shadowMapSize": 4096,
+  "renderPadding": 160,
+  "seed": 2031,
+  "terrain": "flat ground z=0",
+  "location": "Gujarat capital complex and Sector 17–20 neighbourhoods",
+  "model": null,
+  "style": "original detailed geometric illustration; visual milestone not yet passed",
+  "contextRadius": 1200,
+  "treeRadius": 1150,
+  "groundSize": 3200,
+  "shadowExtent": 1350,
+  "input": "data/processed/capital/pilot.json",
+  "output": "outputs/capital",
+  "chunkSize": 1024,
+  "maxOutputPixels": 40000000,
+  "tileSize": 512,
+  "tileOverlap": 1,
+  "city": "Gandhinagar",
+  "referenceVideo": "/Users/shanky/Desktop/rJ_6Wzts91x6J0kx.mp4",
+  "focalAsset": {
+    "sourceId": "way/338492237",
+    "type": "assembly",
+    "domeRadius": 22,
+    "domeRise": 12,
+    "note": "Original simplified octagonal dome and facade model; source footprint retained. Roof placement and proportions are authored, not surveyed."
+  },
+  "mapId": "gandhinagar-capital",
+  "title": "Gandhinagar · Indian Pixel City",
+  "subtitle": "Capital complex · Sectors 10, 11, 17 & 18",
+  "curated": [
+    {
+      "id": "vidhan-sabha",
+      "sourceId": "way/338492237",
+      "name": "Vithalbhai Patel Bhavan",
+      "gujarati": "વિઠ્ઠલભાઈ પટેલ ભવન",
+      "aliases": [
+        "Gujarat Legislative Assembly",
+        "Vidhan Sabha",
+        "Assembly"
+      ],
+      "kind": "landmark",
+      "description": "Gujarat Legislative Assembly building. Footprint from OSM; stepped roof and dome are an original artistic approximation, not a survey."
+    },
+    {
+      "id": "swarnim-sankul-1",
+      "sourceId": "way/338492233",
+      "name": "Swarnim Sankul 1",
+      "aliases": [
+        "Swarnim Sankul- 1"
+      ],
+      "kind": "landmark",
+      "description": "Government offices beside the assembly. Footprint and levels from OSM."
+    },
+    {
+      "id": "swarnim-sankul-2",
+      "sourceId": "way/338492248",
+      "name": "Swarnim Sankul 2",
+      "kind": "landmark",
+      "description": "Government offices beside the assembly. Footprint and levels from OSM."
+    },
+    {
+      "id": "punit-van",
+      "sourceId": "way/420552944",
+      "name": "Punit Van",
+      "gujarati": "પુનિત વન",
+      "kind": "park",
+      "description": "Mapped park; tree placement inside it is authored and deterministic, not surveyed trees."
+    },
+    {
+      "id": "swarnim-park",
+      "sourceId": "relation/13639535",
+      "name": "Swarnim Park",
+      "gujarati": "સ્વર્ણિમ પાર્ક",
+      "kind": "park",
+      "description": "Mapped park; individual trees are authored."
+    },
+    {
+      "id": "nav-grah-van",
+      "sourceId": "way/1004372792",
+      "name": "Nav Grah Van",
+      "gujarati": "નવ ગ્રહ વન",
+      "kind": "park",
+      "description": "Mapped park; individual trees are authored."
+    },
+    {
+      "id": "metro-line-2",
+      "sourceId": "way/1317807972",
+      "name": "Metro Line 2 viaduct",
+      "aliases": [
+        "Gandhinagar Metro",
+        "Motera Stadium – Mahatma Mandir"
+      ],
+      "kind": "infrastructure",
+      "description": "Alignment from OSM (bridge=viaduct). Deck height and pier spacing are inferred."
+    },
+    {
+      "id": "sector-17",
+      "sourceId": "node/3448271095",
+      "name": "Sector 17",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    },
+    {
+      "id": "sector-18",
+      "sourceId": "node/3448268195",
+      "name": "Sector 18",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    },
+    {
+      "id": "sector-10",
+      "sourceId": "node/3448270893",
+      "name": "Sector 10",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    },
+    {
+      "id": "sector-11",
+      "sourceId": "node/3448270993",
+      "name": "Sector 11",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    }
+  ],
+  "treatmentB": {
+    "pixelSize": 1,
+    "normalEdgeStrength": 0.16,
+    "depthEdgeStrength": 0.2
+  },
+  "raw": "data/raw/gandhinagar-capital.overpass.json",
+  "processed": "data/processed/capital"
+}

@@ -1,0 +1,13 @@
+{
+  "type": "FeatureCollection",
+  "description": "Original synthetic test geometry, CC0. Coordinates resemble the pilot but these are NOT real buildings and never enter production data.",
+  "features": [
+    {"type":"Feature","id":"fixture/courtyard","properties":{"building":"yes","height":"12 m","building:levels":"2"},"geometry":{"type":"Polygon","coordinates":[[[75.824,26.924],[75.8248,26.924],[75.8248,26.9248],[75.824,26.9248],[75.824,26.924]],[[75.8242,26.9242],[75.8242,26.9246],[75.8246,26.9246],[75.8246,26.9242],[75.8242,26.9242]]]}},
+    {"type":"Feature","id":"fixture/duplicate","properties":{"building":"yes"},"geometry":{"type":"Polygon","coordinates":[[[75.824,26.924],[75.824,26.9248],[75.8248,26.9248],[75.8248,26.924],[75.824,26.924]],[[75.8242,26.9242],[75.8246,26.9242],[75.8246,26.9246],[75.8242,26.9246],[75.8242,26.9242]]]}},
+    {"type":"Feature","id":"fixture/multipart","properties":{"building":"house","building:levels":"2"},"geometry":{"type":"MultiPolygon","coordinates":[[[[75.826,26.926],[75.8262,26.926],[75.8262,26.9262],[75.826,26.9262],[75.826,26.926]]],[[[75.8264,26.926],[75.8266,26.926],[75.8266,26.9262],[75.8264,26.9262],[75.8264,26.926]]]]}},
+    {"type":"Feature","id":"fixture/bowtie","properties":{"building":"yes"},"geometry":{"type":"Polygon","coordinates":[[[75.827,26.927],[75.8274,26.9274],[75.827,26.9274],[75.8274,26.927],[75.827,26.927]]]}},
+    {"type":"Feature","id":"fixture/missing","properties":{"building":"yes"},"geometry":null},
+    {"type":"Feature","id":"fixture/outside","properties":{"building":"yes"},"geometry":{"type":"Polygon","coordinates":[[[76,27],[76.001,27],[76.001,27.001],[76,27.001],[76,27]]]}},
+    {"type":"Feature","id":"fixture/origin","properties":{"tourism":"attraction","name":"Synthetic origin"},"geometry":{"type":"Point","coordinates":[75.825,26.925]}}
+  ]
+}

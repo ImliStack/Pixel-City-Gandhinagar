@@ -1,0 +1,33 @@
+{
+  "version": "authored-jaipur-1",
+  "license": "Original project geometry, CC-BY-4.0",
+  "surveyModel": false,
+  "hawa-mahal": {
+    "anchorSource": "node/542886858",
+    "contextFootprint": "relation/1460207",
+    "sourceConflict": "Containing footprint is named Saraogi Mansion. This is retained in raw data and flagged; only the narrow authored facade corridor replaces generic geometry.",
+    "axisSource": "east edge of relation/1460207, parallel to nearby Amer Road ways 28776728 and 862509168",
+    "axisEndpointsWorld": [[177.5791563175153,-165.1170450267382],[195.71877881593537,-93.54103937046602]],
+    "approximateLengthMetres": 48,
+    "approximateDepthMetres": 5,
+    "approximateHeightMetres": 17,
+    "tiers": 5,
+    "reference": "https://www.tourism.rajasthan.gov.in/hawa-mahal.html"
+  },
+  "samrat-yantra": {
+    "footprintSource": "way/102878289",
+    "axis": "true north-south; gnomon rises north",
+    "approximateGnomonHeightMetres": 22.6,
+    "reference": "https://jantarmantar.org/gallery/renderingsSamrat/index.php",
+    "note": "Main instrument polygon anchors ramp and quadrants. Detailed stairs and curves reconstructed, not measured."
+  },
+  "ram-yantra": {
+    "footprintSources": ["way/1172205346","way/1172205347"],
+    "note": "Open cylindrical instruments with central poles and slotted walls, scaled to source footprint radius."
+  },
+  "city-palace": {
+    "siteSource": "way/455720627",
+    "note": "Preserve mapped individual wings and courtyard holes; add facade detailing only to mapped building footprints. No extrusion of palace site polygon.",
+    "reference": "https://citypalace.org/"
+  }
+}

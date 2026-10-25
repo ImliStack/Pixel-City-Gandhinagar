@@ -1,0 +1,238 @@
+{
+  "camera": {
+    "azimuth": 25,
+    "elevation": 55
+  },
+  "light": {
+    "east": -180,
+    "north": -220,
+    "up": 420
+  },
+  "shadowMapSize": 4096,
+  "renderPadding": 160,
+  "seed": 2031,
+  "terrain": "flat ground z=0",
+  "model": null,
+  "chunkSize": 1024,
+  "tileSize": 512,
+  "tileOverlap": 1,
+  "treatmentB": {
+    "pixelSize": 1,
+    "normalEdgeStrength": 0.16,
+    "depthEdgeStrength": 0.2
+  },
+  "version": "gandhinagar-city-v1",
+  "mapId": "gandhinagar-city",
+  "city": "Gandhinagar",
+  "title": "Gandhinagar · Indian Pixel City",
+  "subtitle": "Planned capital · Sectors 1–30 and the capital complex",
+  "location": "Gandhinagar planned city (OSM place=city area way/1104668864) plus surrounding margin",
+  "style": "original detailed geometric illustration; reference-video art target not met",
+  "pixelsPerMetre": 5,
+  "input": "data/processed/city/pilot.json",
+  "output": "outputs/city",
+  "raw": "data/raw/gandhinagar-city.overpass.json",
+  "processed": "data/processed/city",
+  "extentFeature": "way/1104668864",
+  "extentBufferMetres": 350,
+  "regionChunks": 4,
+  "regionMargin": 260,
+  "maxOutputPixels": 6000000000,
+  "focalAsset": {
+    "sourceId": "way/338492237",
+    "type": "assembly",
+    "domeRadius": 22,
+    "domeRise": 12,
+    "note": "Original simplified octagonal dome and facade model; source footprint retained. Roof placement and proportions are authored, not surveyed."
+  },
+  "curated": [
+    {
+      "id": "vidhan-sabha",
+      "sourceId": "way/338492237",
+      "name": "Vithalbhai Patel Bhavan",
+      "gujarati": "વિઠ્ઠલભાઈ પટેલ ભવન",
+      "aliases": [
+        "Gujarat Legislative Assembly",
+        "Vidhan Sabha",
+        "Assembly"
+      ],
+      "kind": "landmark",
+      "description": "Gujarat Legislative Assembly building. Footprint from OSM; stepped roof and dome are an original artistic approximation, not a survey."
+    },
+    {
+      "id": "swarnim-sankul-1",
+      "sourceId": "way/338492233",
+      "name": "Swarnim Sankul 1",
+      "aliases": [
+        "Swarnim Sankul- 1"
+      ],
+      "kind": "landmark",
+      "description": "Government offices beside the assembly. Footprint and levels from OSM."
+    },
+    {
+      "id": "swarnim-sankul-2",
+      "sourceId": "way/338492248",
+      "name": "Swarnim Sankul 2",
+      "kind": "landmark",
+      "description": "Government offices beside the assembly. Footprint and levels from OSM."
+    },
+    {
+      "id": "punit-van",
+      "sourceId": "way/420552944",
+      "name": "Punit Van",
+      "gujarati": "પુનિત વન",
+      "kind": "park",
+      "description": "Mapped park; tree placement inside it is authored and deterministic, not surveyed trees."
+    },
+    {
+      "id": "swarnim-park",
+      "sourceId": "relation/13639535",
+      "name": "Swarnim Park",
+      "gujarati": "સ્વર્ણિમ પાર્ક",
+      "kind": "park",
+      "description": "Mapped park; individual trees are authored."
+    },
+    {
+      "id": "nav-grah-van",
+      "sourceId": "way/1004372792",
+      "name": "Nav Grah Van",
+      "gujarati": "નવ ગ્રહ વન",
+      "kind": "park",
+      "description": "Mapped park; individual trees are authored."
+    },
+    {
+      "id": "metro-line-2",
+      "sourceId": "way/1317807972",
+      "name": "Metro Line 2 viaduct",
+      "aliases": [
+        "Gandhinagar Metro",
+        "Motera Stadium – Mahatma Mandir"
+      ],
+      "kind": "infrastructure",
+      "description": "Alignment from OSM (bridge=viaduct). Deck height and pier spacing are inferred."
+    },
+    {
+      "id": "sector-17",
+      "sourceId": "node/3448271095",
+      "name": "Sector 17",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    },
+    {
+      "id": "sector-18",
+      "sourceId": "node/3448268195",
+      "name": "Sector 18",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    },
+    {
+      "id": "sector-10",
+      "sourceId": "node/3448270893",
+      "name": "Sector 10",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    },
+    {
+      "id": "sector-11",
+      "sourceId": "node/3448270993",
+      "name": "Sector 11",
+      "kind": "neighbourhood",
+      "description": "OSM place node."
+    },
+    {
+      "id": "akshardham",
+      "sourceId": "way/338492236",
+      "name": "Swaminarayan Akshardham",
+      "gujarati": "સ્વામિનારાયણ અક્ષરધામ",
+      "aliases": [
+        "Akshardham Temple",
+        "Akshardham"
+      ],
+      "kind": "landmark",
+      "description": "Footprint from OSM. Domes, colonnade and carved bands are an original approximation to published proportions (~33 m high), not a survey."
+    },
+    {
+      "id": "dandi-kutir",
+      "sourceId": "way/338769679",
+      "name": "Dandi Kutir",
+      "aliases": [
+        "Salt Mount Museum",
+        "Salt Mound"
+      ],
+      "kind": "landmark",
+      "description": "Museum inside a ~41 m salt-mound shell; footprint from OSM, shell profile authored."
+    },
+    {
+      "id": "mahatma-mandir",
+      "sourceId": "way/326048766",
+      "name": "Mahatma Mandir",
+      "aliases": [
+        "Convention Centre",
+        "Mahatma Mandir Convention and Exhibition Centre"
+      ],
+      "kind": "landmark",
+      "description": "Convention and exhibition centre; footprint from OSM, height from published hall dimensions."
+    },
+    {
+      "id": "indroda",
+      "sourceId": "way/244342863",
+      "name": "Indroda Nature Park",
+      "aliases": [
+        "Indroda Park",
+        "Dinosaur Park"
+      ],
+      "kind": "park",
+      "description": "Mapped park; trees inside are authored."
+    },
+    {
+      "id": "sarita-udyan",
+      "sourceId": "way/541916262",
+      "name": "Sarita Udyan",
+      "aliases": [
+        "Sarita Udhyan"
+      ],
+      "kind": "park",
+      "description": "Mapped garden."
+    },
+    {
+      "id": "infocity",
+      "sourceId": "way/1317807975",
+      "name": "Infocity metro station",
+      "aliases": [
+        "Infocity"
+      ],
+      "kind": "infrastructure",
+      "description": "Metro station footprint from OSM."
+    },
+    {
+      "id": "gift-one",
+      "sourceId": "way/386478178",
+      "name": "GIFT One",
+      "aliases": [
+        "GIFT City"
+      ],
+      "kind": "landmark",
+      "description": "122 m tower (OSM height tag)."
+    }
+  ],
+  "referenceVideo": "/Users/shanky/Desktop/rJ_6Wzts91x6J0kx.mp4",
+  "landmarks": [
+    {
+      "sourceId": "way/338492236",
+      "type": "akshardham",
+      "source": "Published dimensions ~108 ft high, 240 ft long, 131 ft wide, pink sandstone (Wikipedia; Gujarat Tourism)"
+    },
+    {
+      "sourceId": "way/338769679",
+      "type": "saltmound",
+      "height": 41,
+      "source": "Dandi Kutir salt-mound shell ~41 m high, ~90 m diameter (WorldArchitecture; government releases)"
+    }
+  ],
+  "heightOverrides": {
+    "way/326048766": {
+      "height": 13.5,
+      "source": "Mahatma Mandir convention hall: published 11.2 m clear height; roof structure allowance added"
+    }
+  }
+}

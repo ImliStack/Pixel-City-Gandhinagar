@@ -1,0 +1,4 @@
+pyproj==3.6.1
+shapely==2.0.7
+# research-only: tools/pilot/audit_candidate.py (VEDAS parquet audit)
+pyarrow==20.0.0

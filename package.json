@@ -1,0 +1,55 @@
+{
+  "name": "indian-pixel-city",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "type": "module",
+  "scripts": {
+    "doctor": "node tools/city.mjs doctor",
+    "fetch-pilot": "node tools/city.mjs fetch",
+    "audit-data": "node tools/city.mjs audit",
+    "build-scene": "node tools/city.mjs scene",
+    "render-pilot": "node tools/city.mjs render",
+    "stylize-pilot": "node tools/city.mjs stylize",
+    "export-map": "node tools/city.mjs export",
+    "diagnostics": "node tools/city.mjs diagnostics",
+    "dev": "vite --config apps/viewer/vite.config.ts --host 127.0.0.1",
+    "build": "tsc --noEmit -p apps/viewer/tsconfig.json && vite build --config apps/viewer/vite.config.ts",
+    "verify": "node --test tests/*.test.mjs && .venv/bin/python -m unittest discover -s tests -p 'test_*.py'",
+    "verify:browser": "node tools/qa/viewer.mjs",
+    "demo": "node tools/qa/demo.mjs",
+    "build-sample": ".venv/bin/python tools/sample/prepare.py --config config/cities/gandhinagar-sample.json && node tools/capital/render.mjs --config config/cities/gandhinagar-sample.json --mode A",
+    "fetch-sample": ".venv/bin/python tools/data/fetch.py --config config/gandhinagar-data.json --output data/raw/gandhinagar.overpass.json",
+    "prepare-sample": ".venv/bin/python tools/data/prepare.py --config config/gandhinagar-data.json --input data/raw/gandhinagar.overpass.json --output data/processed/gandhinagar",
+    "render-sample": "node tools/sample/render.mjs --revision3",
+    "compare-sample": "node tools/sample/compare.mjs",
+    "verify:sample": "node --test tests/sample.test.mjs",
+    "jaipur:fetch": ".venv/bin/python tools/data/fetch.py",
+    "jaipur:prepare": ".venv/bin/python tools/data/prepare.py",
+    "jaipur:render": "node tools/render/render.mjs",
+    "jaipur:export": "node tools/tiles/export.mjs",
+    "jaipur:verify-browser": "node tools/qa/browser.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/dm-sans": "^5.2.6",
+    "@fontsource/noto-sans-devanagari": "^5.2.6",
+    "lucide-react": "^0.468.0",
+    "openseadragon": "^5.0.1",
+    "proj4": "^2.12.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/openseadragon": "^4.1.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.58.2",
+    "sharp": "^0.35.5",
+    "typescript": "^5.7.0",
+    "vite": "^6.1.0"
+  }
+}

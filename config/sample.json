@@ -1,0 +1,16 @@
+{
+  "version": "gandhinagar-visual-1",
+  "width": 2048,
+  "height": 2048,
+  "centerWorld": [-260, -555],
+  "pixelsPerMetre": 9.0,
+  "camera": {"azimuth": 25, "elevation": 55},
+  "light": {"east": -180, "north": -220, "up": 420},
+  "shadowMapSize": 4096,
+  "renderPadding": 160,
+  "seed": 2031,
+  "terrain": "flat ground z=0",
+  "location": "Residential blocks and pocket gardens beside G Road, Gandhinagar, Gujarat",
+  "model": null,
+  "style": "original detailed geometric illustration; visual milestone not yet passed"
+}

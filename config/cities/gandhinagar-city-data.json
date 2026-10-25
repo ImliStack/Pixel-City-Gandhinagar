@@ -1,0 +1,23 @@
+{
+  "bbox": [
+    72.6,
+    23.162,
+    72.692,
+    23.28
+  ],
+  "origin": [
+    72.646,
+    23.221
+  ],
+  "geographicCrs": "EPSG:4326",
+  "worldCrs": "EPSG:32643",
+  "floorHeightMetres": 3.2,
+  "terrain": "flat pilot; ground elevation is zero, no DEM",
+  "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+  "maxDownloadBytes": 41943040,
+  "maxAttempts": 3,
+  "timeoutSeconds": 180,
+  "maxBboxSquareDegrees": 0.001,
+  "userAgent": "PixelCity/0.3 (local city-scale illustrated map of Gandhinagar; OpenStreetMap attribution retained)",
+  "landmarkAudit": []
+}

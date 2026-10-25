@@ -1,0 +1,17 @@
+{
+  "version": "pilot-v1",
+  "bbox": [75.815, 26.915, 75.835, 26.935],
+  "width": 6144,
+  "height": 5120,
+  "chunkSize": 1024,
+  "padding": 192,
+  "maxOutputPixels": 33554432,
+  "camera": {"azimuth": 25, "elevation": 52, "margin": 120},
+  "light": {"east": -650, "north": -900, "up": 1500},
+  "tileSize": 512,
+  "tileOverlap": 1,
+  "styleVersion": "jaipur-geometry-1",
+  "seed": 1727,
+  "terrain": "flat z=0; no DEM loaded",
+  "background": "#e8dfc9"
+}

@@ -1,0 +1,4 @@
+{
+  "cityConfig": "config/cities/gandhinagar.json",
+  "dataConfig": "config/cities/gandhinagar-data.json"
+}

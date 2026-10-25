@@ -1,0 +1,72 @@
+{
+  "inspection_date": "2026-10-24",
+  "repositories": [
+    {
+      "repository": "omerbt/MultiDiffusion",
+      "revision": "69bcdcef437dfdbf48c53624d6bf6f397b5f4894",
+      "inspection_files": [
+        "README.md",
+        "panorama.py",
+        "pipeline_controlnet.py",
+        "region_based.py"
+      ],
+      "reused_files": []
+    },
+    {
+      "repository": "tashasho/cityscope",
+      "revision": "50be7790b084ee57b5202ea6f3eb677ea1eba525",
+      "inspection_files": [
+        "README.md",
+        "package.json",
+        "public/cities/bangalore.html",
+        "public/cities/mumbai.html"
+      ],
+      "reused_files": []
+    },
+    {
+      "repository": "RayNCooper/iso-cities",
+      "revision": "bf09d9da33230f04f8cf18c1e39364569c484890",
+      "inspection_files": [
+        "ATTRIBUTION.md",
+        "LICENSE",
+        "README.md",
+        "package.json",
+        "src/index.ts",
+        "src/osm/classify.ts",
+        "src/render/iso.ts",
+        "src/render/render.ts",
+        "src/scene/build.ts"
+      ],
+      "reused_files": []
+    },
+    {
+      "repository": "cannoneyed/isometric-nyc",
+      "revision": "008446357ec67512c4329d25edefb6c508c7b24d",
+      "inspection_files": [
+        "LICENSE",
+        "README.md",
+        "docs/app.md",
+        "docs/data.md",
+        "docs/generation.md",
+        "src/app/README.md",
+        "src/app/package.json",
+        "src/app/src/components/IsometricMap.tsx",
+        "src/app/src/config.ts",
+        "src/isometric_nyc/generation/export_dzi.py",
+        "src/web_render/main.js",
+        "src/web_render/package.json"
+      ],
+      "reused_files": []
+    },
+    {
+      "repository": "JustinChavez/sf-isometric-demo",
+      "revision": "cf6f6ff4422b584dcd0447d73f316329229e2668",
+      "inspection_files": [
+        "README.md",
+        "app.js",
+        "package.json"
+      ],
+      "reused_files": []
+    }
+  ]
+}

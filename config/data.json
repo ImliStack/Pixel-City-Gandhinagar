@@ -1,0 +1,14 @@
+{
+  "bbox": [75.815, 26.915, 75.835, 26.935],
+  "origin": [75.825, 26.925],
+  "geographicCrs": "EPSG:4326",
+  "worldCrs": "EPSG:32643",
+  "floorHeightMetres": 3.2,
+  "terrain": "flat pilot; ground elevation is zero, no DEM",
+  "overpassEndpoint": "https://overpass-api.de/api/interpreter",
+  "maxDownloadBytes": 12582912,
+  "maxAttempts": 3,
+  "timeoutSeconds": 100,
+  "maxBboxSquareDegrees": 0.0005,
+  "userAgent": "JaipurPixelCity/0.1 (local bounded research pilot; OpenStreetMap attribution retained)"
+}

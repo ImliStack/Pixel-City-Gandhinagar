@@ -1,0 +1,17 @@
+{
+  "model_id": "Qwen/Qwen-Image-Edit",
+  "revision": "ac7f9318f633fc4b5778c59367c8128225f1e3de",
+  "checkpoint": "/absolute/path/to/already-downloaded/Qwen-Image-Edit",
+  "license": "Apache-2.0",
+  "license_verified_source": "https://huggingface.co/Qwen/Qwen-Image-Edit/blob/ac7f9318f633fc4b5778c59367c8128225f1e3de/README.md",
+  "device": "mps",
+  "precision": "float16",
+  "adapter": null,
+  "crop_size": 512,
+  "crop_origin": [1024, 1024],
+  "steps": 30,
+  "max_seconds": 900,
+  "seed": 42,
+  "true_cfg_scale": 4.0,
+  "memory_budget_gib": 4
+}

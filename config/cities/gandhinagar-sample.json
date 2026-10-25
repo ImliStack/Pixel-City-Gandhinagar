@@ -1,0 +1,40 @@
+{
+  "version": "gandhinagar-sample-capital-renderer",
+  "width": 2048,
+  "height": 2048,
+  "centerWorld": [
+    -260,
+    -555
+  ],
+  "pixelsPerMetre": 9.0,
+  "camera": {
+    "azimuth": 25,
+    "elevation": 55
+  },
+  "light": {
+    "east": -180,
+    "north": -220,
+    "up": 420
+  },
+  "shadowMapSize": 4096,
+  "renderPadding": 160,
+  "seed": 2031,
+  "terrain": "flat ground z=0",
+  "location": "Residential blocks and pocket gardens beside G Road, Gandhinagar, Gujarat",
+  "model": null,
+  "style": "original detailed geometric illustration; visual milestone not yet passed",
+  "contextRadius": 520,
+  "treeRadius": 500,
+  "groundSize": 1400,
+  "shadowExtent": 1350,
+  "input": "data/processed/gandhinagar/pilot.json",
+  "output": "outputs/capital-sample",
+  "chunkSize": 1024,
+  "maxOutputPixels": 40000000,
+  "tileSize": 512,
+  "tileOverlap": 1,
+  "city": "Gandhinagar",
+  "referenceVideo": "/Users/shanky/Desktop/rJ_6Wzts91x6J0kx.mp4",
+  "focalAsset": null,
+  "note": "Same camera, light, resolution, centre and source extract as config/sample.json (historical artwork-candidate-v3), rendered with the capital renderer."
+}
