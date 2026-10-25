@@ -78,6 +78,18 @@ try {
   check('clearing chip removes icon pins', !(await state()).f);
   await page.keyboard.press('Escape'); await page.waitForTimeout(200);
   check('places panel collapses on Escape', (await page.locator('.places-panel').count()) === 0);
+  // Filtering one category lists every matching place; a row opens a card with a pixel thumbnail and summary.
+  await page.click('.places-toggle'); await page.locator('.places-grid button', {hasText: 'Temples'}).first().click(); await page.keyboard.press('Escape');
+  await page.waitForSelector('.place-list li');
+  const worship = meta.categories.find(c => c.id === 'worship').count, listCount = Number(await page.locator('[data-testid="list-count"]').textContent());
+  check('temple filter lists every temple', listCount === worship && (await page.locator('.place-list li').count()) === worship, `${listCount} of ${worship}`);
+  await page.locator('.place-list li button').first().click(); await page.waitForSelector('.place-card .place-thumb img'); await settle(page);
+  const summary = await page.locator('[data-testid="place-summary"]').textContent(), thumbOk = await page.locator('.place-thumb img').evaluateAll(imgs => imgs.length > 0 && imgs.every(i => i.complete && i.naturalWidth > 0));
+  check('place card shows pixel thumbnail and summary', thumbOk && /Sector|OpenStreetMap/.test(summary), summary.slice(0, 80));
+  await page.screenshot({path: path.join(out, 'desktop-place-list.png')});
+  await page.click('.places-clear'); await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+  check('clearing filter hides the list', (await page.locator('.place-list').count()) === 0);
+
   // Night / climate layers share the lattice: switching keeps the view.
   const pre = await state();
   await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Night")'); await settle(page);
@@ -86,6 +98,7 @@ try {
   await page.screenshot({path: path.join(out, 'desktop-night.png')});
   await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Summer day")'); await settle(page);
   // Zoom-out never reveals blank space: the art fills the window and stays inside the image.
+  await page.keyboard.press('0'); await settle(page);
   for (let i = 0; i < 12; i++) { await page.mouse.wheel(0, 240); await page.waitForTimeout(40); } await settle(page);
   const bounds = await page.evaluate(() => { const c = document.querySelector('.map-canvas').getBoundingClientRect(); return {w: c.width, h: c.height}; });
   const view = await page.evaluate(() => { const s = Object.fromEntries(new URLSearchParams(location.hash.slice(1))); return {cx: +s.cx, cy: +s.cy, z: +s.z}; });

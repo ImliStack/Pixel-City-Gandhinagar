@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
 import { Check, Copy, Crosshair, X } from 'lucide-react';
-import { clueTiles, dailyPuzzle, formatDistance, groundMeters, istDay, MAX_SCORE, ROUNDS, scoreEmoji, scoreFor, type Point } from '../shared/daily.mjs';
+import { dailyPuzzle, formatDistance, groundMeters, istDay, MAX_SCORE, ROUNDS, scoreEmoji, scoreFor, type Point } from '../shared/daily.mjs';
 import type { Snapshot } from '../shared/social-core.mjs';
 import type { PendingGuess } from './social';
 import type { Metadata } from './types';
 import { PixelFace } from './icons';
+import { TileCrop } from './TileCrop';
 
 type Result = { x: number; y: number; score: number; meters: number } | null;
 const CLUE = 196;
@@ -34,10 +35,6 @@ export function DailyGame({ metadata, base, viewer, screenPoint, me, snap, offli
   const shown = reveal ?? (done ? null : round);
   const target = shown !== null ? puzzle[shown] : null;
   const total = results.reduce((s, r) => s + (r?.score || 0), 0);
-  const maxLevel = Math.ceil(Math.log2(Math.max(metadata.width, metadata.height)));
-  const tileDir = `${base}${(metadata.layers?.A?.dzi || metadata.dzi).replace(/\.dzi$/, '')}_files/`;
-  const tiles = target?.image ? clueTiles({ width: metadata.width, height: metadata.height, tileSize: metadata.tileSize || 512, overlap: metadata.overlap ?? 1 }, target.image, maxLevel - 2, CLUE) : [];
-  const ext = metadata.format || 'webp';
 
   const center = (): Point | null => {
     if (!viewer?.world.getItemCount()) return null;
@@ -83,10 +80,7 @@ export function DailyGame({ metadata, base, viewer, screenPoint, me, snap, offli
     <section className="game-panel" aria-label="Daily landmark game">
       <header><strong>Find the landmark</strong><span>{day} · {done ? 'done' : `round ${(reveal ?? round) + 1}/${ROUNDS}`}</span><button className="close" onClick={onClose} aria-label="Close game"><X size={15} /></button></header>
       {target && <>
-        <div className="clue" style={{ width: CLUE, height: CLUE }} aria-label="Close-up of today's place">
-          {tiles.map((t) => <img key={t.file} src={`${tileDir}${t.file}.${ext}`} alt="" draggable={false} style={{ left: t.left, top: t.top }} />)}
-          <span className="clue-ring" />
-        </div>
+        {target.image && <TileCrop metadata={metadata} base={base} point={target.image} size={CLUE} level={2} className="clue" label="Close-up of today's place"><span className="clue-ring" /></TileCrop>}
         {reveal === null
           ? <><p className="hint">A {target.kind === 'landmark' ? 'landmark' : (target.kind || 'place').replace(/_/g, ' ')}{target.category ? ` · ${target.category}` : ''}. Pan the map until the crosshair is on it.</p>
             <button className="game-primary" onClick={guess} data-testid="guess">Guess here</button></>

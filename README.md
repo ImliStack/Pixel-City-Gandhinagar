@@ -138,6 +138,8 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 - **Search** in English, Gujarati or by type. Typos, abbreviations (*daiict*, *iit*) and local names (*Vidhan Sabha*, *Secretariat*) work.
 - **Places filter**: 16 pixel-icon categories — petrol pumps, hospitals, pharmacies, colleges, schools, malls, banks, temples, government offices, food, hotels, **metro stations, railway stations, bus stands**, parks and sights.
 - **Place names appear as you zoom in**, decluttered so labels never overlap.
+- **Filtered place list**: turn on a category (e.g. Temples) and every matching place is listed with its sector. Click one to fly there.
+- **Place cards with a pixel view**: a nearest-neighbour close-up cropped from the map's own tiles in the current layer, plus a summary built from the map data (kind, sector, nearest landmark, similar places nearby, OSM id and link).
 - **Minimap** with a live view box (click or drag to move), share links with view, layer, filters and image version, and a mobile layout.
 - **Random landmark** (🎲 / `R`): a shuffle-bag tour of the curated landmarks, idea borrowed from Isometric Málaga.
 
@@ -264,7 +266,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 39/39 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 42/42 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (49 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |

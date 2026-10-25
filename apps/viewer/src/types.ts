@@ -115,3 +115,33 @@ export function searchPois(pois: Poi[], term: string, limit = 8): Poi[] {
 export function matchesPoi(poi: Poi, term: string): boolean {
   return searchPois([poi], term, 1).length === 1;
 }
+
+const KIND_LABEL: Record<string, string> = { place_of_worship: 'Place of worship', landmark: 'Landmark', building: 'Building', park: 'Park', site: 'Site', hospital: 'Hospital', clinic: 'Clinic', railway: 'Railway station', restaurant: 'Restaurant', cafe: 'Café', fast_food: 'Fast food', hotel: 'Hotel', bank: 'Bank', atm: 'ATM', fuel: 'Petrol pump', college: 'College', university: 'University', school: 'School', water: 'Lake / water', dentist: 'Dentist', doctors: 'Doctor', pharmacy: 'Pharmacy', community_centre: 'Community centre', cinema: 'Cinema', theatre: 'Theatre', street: 'Street', road: 'Road', neighbourhood: 'Sector / area' };
+export const kindLabel = (poi: Poi) => KIND_LABEL[poi.kind || ''] || (poi.kind || 'Place').replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+
+// Nearest named area (sector) by image distance, and a factual summary built only from map data.
+export function nearestArea(pois: Poi[], poi: Poi): Poi | null {
+  const p = pointForPoi(poi); if (!p) return null;
+  let best: Poi | null = null, d = Infinity;
+  for (const a of pois) { if (a.kind !== 'neighbourhood' || a === poi) continue; const q = pointForPoi(a); if (!q) continue; const dd = Math.hypot(q[0] - p[0], q[1] - p[1]); if (dd < d) { d = dd; best = a; } }
+  return d < 9000 ? best : null;
+}
+
+export function describePoi(pois: Poi[], poi: Poi, metresBetween: (a: [number, number], b: [number, number]) => number, categoryLabel?: string): string {
+  const p = pointForPoi(poi);
+  const area = nearestArea(pois, poi);
+  const parts: string[] = [];
+  parts.push(`${poi.unnamed ? `An unnamed ${kindLabel(poi).toLowerCase()}` : `${kindLabel(poi)}`}${area ? ` in ${area.name}` : ''}.`);
+  if (p) {
+    // Closest well-known landmark, for orientation.
+    let near: Poi | null = null, nd = Infinity;
+    for (const o of pois) { if (!o.curated || o === poi || o.kind === 'neighbourhood' || o.kind === 'infrastructure' || isStreet(o)) continue; const q = pointForPoi(o); if (!q) continue; const m = metresBetween(p, q); if (m < nd) { nd = m; near = o; } }
+    if (near && nd < 4000) parts.push(`${nd < 1000 ? Math.round(nd / 10) * 10 + ' m' : (nd / 1000).toFixed(1) + ' km'} from ${near.name}.`);
+    if (poi.category) {
+      const same = pois.filter((o) => o !== poi && o.category === poi.category && (() => { const q = pointForPoi(o); return q && metresBetween(p, q) < 1500; })()).length;
+      if (same) parts.push(`${categoryLabel || 'Similar places'} within 1.5 km: ${same} more.`);
+    }
+  }
+  if (poi.sourceId) parts.push(`Mapped in OpenStreetMap as ${poi.sourceId}.`);
+  return parts.join(' ');
+}

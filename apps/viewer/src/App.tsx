@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
 import { Check, ChevronDown, Dices, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
-import { isStreet, pointForPoi, searchPois, type Metadata, type Poi } from './types';
+import { describePoi, isStreet, kindLabel, nearestArea, pointForPoi, searchPois, type Metadata, type Poi } from './types';
+import { TileCrop } from './TileCrop';
+import { groundMeters } from '../shared/daily.mjs';
 import { readViewState, writeViewState, type Layer } from './state';
 import { PixelIcon, PixelFace, CATEGORY_COLOR } from './icons';
 import { useSocial } from './social';
@@ -71,6 +73,7 @@ export default function App() {
   const filtersRef = useRef<string[]>(filters);
   filtersRef.current = filters;
   const [placesOpen, setPlacesOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(true);
   const placesRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!placesOpen) return;
@@ -313,6 +316,11 @@ export default function App() {
     if (next) choosePoi(next);
   }, [metadata, choosePoi]);
 
+  // Places matching the active category filters, named first, each with its nearest sector.
+  const listed = useMemo(() => !metadata || !filters.length ? [] : metadata.pois.filter((p) => p.category && filters.includes(p.category) && pointForPoi(p))
+    .sort((a, b) => Number(!!a.unnamed) - Number(!!b.unnamed) || a.name.localeCompare(b.name))
+    .map((poi) => ({ poi, area: nearestArea(metadata.pois, poi)?.name })), [metadata, filters]);
+
   const results = useMemo(() => {
     if (!metadata) return [];
     const term = query.trim();
@@ -468,6 +476,17 @@ export default function App() {
       <span className="counts"><strong data-testid="online">{social.snap.onlineCount}</strong> here now · <span data-testid="visits">{social.snap.visits.toLocaleString('en-IN')}</span> visits</span>
     </div>}
 
+    {!gameOpen && filters.length > 0 && metadata && <section className={`place-list ${listOpen ? 'open' : ''}`} aria-label="Filtered places">
+      <button className="place-list-head" onClick={() => setListOpen(!listOpen)} aria-expanded={listOpen}>
+        <span className="icons">{filters.slice(0, 3).map((id) => <PixelIcon key={id} category={id} size={13} />)}</span>
+        <span className="title">{filters.length === 1 ? metadata.categories?.find((c) => c.id === filters[0])?.label : `${filters.length} categories`}</span>
+        <b data-testid="list-count">{listed.length}</b><ChevronDown size={14} className="chev" />
+      </button>
+      {listOpen && <ul>{listed.map(({ poi, area }) => <li key={poi.id}><button className={poi.id === selectedId ? 'active' : ''} onClick={() => choosePoi(poi)}>
+        <PixelIcon category={poi.category} size={14} /><span className="name">{poi.unnamed ? <i>{poi.name}</i> : poi.name}</span>{area && <span className="area">{area}</span>}
+      </button></li>)}</ul>}
+    </section>}
+
     {gameOpen && metadata && <DailyGame metadata={metadata} base={base} viewer={ready ? viewer : null} screenPoint={screenPoint} me={social.id} snap={social.snap} offline={social.offline} sendGuess={social.sendGuess} onClose={() => setGameOpen(false)} />}
 
     {!!metadata?.categories?.length && <div ref={placesRef} className={`places ${placesOpen ? 'open' : ''}`}>
@@ -521,11 +540,15 @@ export default function App() {
 
     <footer className="attribution"><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">{metadata?.attribution || '© OpenStreetMap contributors · ODbL 1.0'}</a><span> · {LAYER_LABEL[layerRef.current]} · {metadata?.version}</span></footer>
 
-    {selected && <div className="place-card" role="dialog" aria-label={selected.name}>
+    {selected && metadata && <div className="place-card" role="dialog" aria-label={selected.name}>
       <button className="close" onClick={() => setSelectedId(null)} aria-label="Close"><X size={15} /></button>
-      <span className="kind">{selected.kind}</span><strong>{selected.name}</strong>{selected.gujarati && <span lang="gu" className="alt">{selected.gujarati}</span>}
-      {selected.description && <p>{selected.description}</p>}
-      {Number.isFinite(selected.lat) && <span className="coords">{selected.lat!.toFixed(5)}° N · {selected.lon!.toFixed(5)}° E</span>}
+      {pointForPoi(selected) && <TileCrop metadata={metadata} base={base} dzi={layers[layerRef.current]?.dzi} point={pointForPoi(selected)!} size={window.innerWidth < 640 ? 76 : 104} level={2} zoom={2} className="place-thumb" label={`Pixel view of ${selected.name} from this map`} />}
+      <div className="place-body">
+        <span className="kind">{selected.category && <PixelIcon category={selected.category} size={12} />}{kindLabel(selected)}</span><strong>{selected.name}</strong>{selected.gujarati && <span lang="gu" className="alt">{selected.gujarati}</span>}
+        <p data-testid="place-summary">{describePoi(metadata.pois, selected, (a, b) => groundMeters(a, b, metadata.transform as { scale?: number; up?: number[] }), metadata.categories?.find((c) => c.id === selected.category)?.label)}</p>
+        {selected.description && <p className="note">{selected.description}</p>}
+        {Number.isFinite(selected.lat) && <span className="coords">{selected.lat!.toFixed(5)}° N · {selected.lon!.toFixed(5)}° E{selected.sourceId && <> · <a href={`https://www.openstreetmap.org/${selected.sourceId}`} target="_blank" rel="noreferrer">OSM</a></>}</span>}
+      </div>
     </div>}
     {missingTiles > 0 && !error && <div className="toast" role="status"><Info size={15} /><span>{missingTiles} local tile{missingTiles > 1 ? 's' : ''} missing — shown as blank ground. Re-run <code>npm run export-map</code>.</span><button onClick={() => setMissingTiles(0)} aria-label="Dismiss"><X size={13} /></button></div>}
     {versionNotice && <div className="toast upper" role="status"><Info size={15} /><span>{versionNotice}</span><button onClick={() => setVersionNotice('')} aria-label="Dismiss"><X size={13} /></button></div>}
