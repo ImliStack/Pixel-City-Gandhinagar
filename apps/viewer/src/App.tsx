@@ -11,6 +11,8 @@ import { MotionLayer, paintMinimapBlank, type MotionData } from './motion';
 import { DailyGame } from './DailyGame';
 
 const DEFAULT_MAP = 'gandhinagar-city';
+// Build-pipeline hints only make sense on a developer's machine, not on the deployed site.
+const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
 // The historical Jaipur export stays at /map/; new city exports live under /maps/<id>/.
 const mapBase = (id: string) => (id === 'jaipur' ? '/map/' : `/maps/${encodeURIComponent(id)}/`);
 const localPath = (base: string, file: string) => {
@@ -550,9 +552,9 @@ export default function App() {
         {Number.isFinite(selected.lat) && <span className="coords">{selected.lat!.toFixed(5)}° N · {selected.lon!.toFixed(5)}° E{selected.sourceId && <> · <a href={`https://www.openstreetmap.org/${selected.sourceId}`} target="_blank" rel="noreferrer">OSM</a></>}</span>}
       </div>
     </div>}
-    {missingTiles > 0 && !error && <div className="toast" role="status"><Info size={15} /><span>{missingTiles} local tile{missingTiles > 1 ? 's' : ''} missing — shown as blank ground. Re-run <code>npm run export-map</code>.</span><button onClick={() => setMissingTiles(0)} aria-label="Dismiss"><X size={13} /></button></div>}
+    {missingTiles > 0 && !error && <div className="toast" role="status"><Info size={15} /><span>{missingTiles} tile{missingTiles > 1 ? 's' : ''} could not load — shown as blank ground. {isLocal ? <>Re-run <code>npm run export-map</code>.</> : 'Try reloading in a moment.'}</span><button onClick={() => setMissingTiles(0)} aria-label="Dismiss"><X size={13} /></button></div>}
     {versionNotice && <div className="toast upper" role="status"><Info size={15} /><span>{versionNotice}</span><button onClick={() => setVersionNotice('')} aria-label="Dismiss"><X size={13} /></button></div>}
-    {(loading || error) && <div className="map-status" role="status"><h2>{error ? 'Local map not ready' : 'Loading local tiles…'}</h2>{error && <><p>{error}</p><code>npm run render-pilot && npm run export-map</code></>}</div>}
+    {(loading || error) && <div className="map-status" role="status"><h2>{error ? 'Map not ready' : 'Loading map tiles…'}</h2>{error && <><p>{error}</p>{isLocal && <code>npm run render-pilot && npm run export-map</code>}</>}</div>}
     {shareFallback && <div className="share-fallback" role="dialog" aria-label="Copy share link"><input readOnly value={shareFallback} onFocus={(e) => e.target.select()} autoFocus aria-label="Share URL" /><button onClick={() => setShareFallback('')} aria-label="Close"><X size={14} /></button></div>}
     {infoOpen && <div className="modal-scrim" onClick={(e) => { if (e.target === e.currentTarget) setInfoOpen(false); }}><section className="about" role="dialog" aria-modal="true" aria-labelledby="about-title">
       <button className="close" onClick={() => setInfoOpen(false)} aria-label="Close" autoFocus><X size={18} /></button>

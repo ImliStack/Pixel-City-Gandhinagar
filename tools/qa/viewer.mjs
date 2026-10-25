@@ -193,7 +193,7 @@ try {
   const broken = await context.newPage();
   await broken.route(`**/A_files/${Math.ceil(Math.log2(Math.max(meta.width, meta.height))) - 2}/**`, r => r.fulfill({status: 404, body: ''}));
   await broken.goto(`${base}/?map=${mapId}#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.25`); await broken.waitForSelector('.toast', {timeout: 10000}).catch(() => null);
-  check('missing tiles show notice', await broken.locator('.toast').count() >= 1 && (await broken.locator('.toast').first().textContent()).includes('missing'));
+  check('missing tiles show notice', await broken.locator('.toast').count() >= 1 && (await broken.locator('.toast').first().textContent()).includes('could not load'));
   await broken.screenshot({path: path.join(out, 'missing-tiles.png')}); await broken.close();
 
   // prefers-reduced-motion: no animation by default, layer switches are instant.
