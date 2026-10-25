@@ -60,3 +60,14 @@ Opened live in the built-in browser; page source, `tiles/config.json` and `tiles
 | Labels / search | None. No POI labels, no search, no share state beyond `#z=&x=&y=`. | We are ahead (ranked search, close-zoom labels, filters, v2 share links). |
 | Interaction | 🎲 button / `R` key flies to a random one of 20 hard-coded landmarks using a **shuffle bag** (all visited before repeats), shows a 4.5 s badge; `F` fullscreen; `0` home. Portrait-mobile tuned fit rectangles. | **Adopted** the shuffle-bag random landmark (dice button + `R`), driven by our curated POIs instead of hand-tuned tile coordinates. Fullscreen not added (browser chrome already minimal). |
 | Renderer | No renderer code is public on the site. | No change to `tools/capital/scene.mjs`: nothing observed shows a clear improvement to our deterministic scene. |
+
+## UI motion study · 26 October 2026
+
+Sources I read before adding animation: [NN/g, "Executing UX Animations: Duration and Motion Characteristics"](https://www.nngroup.com/articles/animation-duration/), the Material 3 easing tokens (emphasized-decelerate `cubic-bezier(0.05, 0.7, 0.1, 1)` for entrances), and the [tiny.london build notes](https://tiny.london/how/).
+
+| Finding | Applied |
+| --- | --- |
+| NN/g: most UI motion should take 100–400 ms; small feedback ~100 ms; panels 200–300 ms; exits shorter than entrances; frequent animations should be the most subtle; honour reduced motion. | Panels, menus, toasts and cards rise in over 180–260 ms with emphasized-decelerate easing. Exits are instant. Button press is a 100 ms scale. Everything is switched off by the existing `prefers-reduced-motion` rule. |
+| tiny.london: ambient animation (its clouds) only runs while visible on screen, at a capped 15 fps. | The motion overlay caps at 30 fps, skips work for off-screen roads, lamps and windows, redraws static scenes only when the view changes, and pauses in hidden tabs. |
+| tiny.london: coarse levels stand in smoothly while sharper tiles load. | Layer switches cross-fade over 900 ms instead of swapping, so the new layer's tiles appear softly. |
+| Málaga (above): random-landmark fly-to with a short badge. | Already adopted. Pins now pop in (220 ms spring) when they appear. |

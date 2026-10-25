@@ -5,6 +5,7 @@ import { isStreet, pointForPoi, searchPois, type Metadata, type Poi } from './ty
 import { readViewState, writeViewState, type Layer } from './state';
 import { PixelIcon, PixelFace, CATEGORY_COLOR } from './icons';
 import { useSocial } from './social';
+import { MotionLayer, paintMinimapBlank, type MotionData } from './motion';
 import { DailyGame } from './DailyGame';
 
 const DEFAULT_MAP = 'gandhinagar-city';
@@ -29,7 +30,11 @@ export default function App() {
   const layerRef = useRef<Layer>('A');
   const searchRef = useRef<HTMLInputElement>(null);
   const minimapRef = useRef<HTMLDivElement>(null);
-  const lastViewRef = useRef<{ center: OpenSeadragon.Point; zoom: number } | null>(null);
+  // Tiled images currently drawn, bottom to top; a layer switch cross-fades a new one in on top.
+  const stackRef = useRef<{ layer: Layer; item: OpenSeadragon.TiledImage }[]>([]);
+  const fadeRef = useRef(0);
+  const motionCanvasRef = useRef<HTMLCanvasElement>(null);
+  const miniBlankRef = useRef<HTMLCanvasElement>(null);
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [missingTiles, setMissingTiles] = useState(0);
@@ -46,6 +51,17 @@ export default function App() {
   const [shareFallback, setShareFallback] = useState('');
   const [versionNotice, setVersionNotice] = useState('');
   const [debug, setDebug] = useState(false);
+  const reducedMotion = useMemo(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false, []);
+  const stored = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
+  const store = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* ignore */ } };
+  // Night motion is on by default unless the OS asks for reduced motion; the layer menu can switch it.
+  const [motionOn, setMotionOn] = useState(() => (stored('pc-motion') ?? (reducedMotion ? '0' : '1')) === '1');
+  const motionOnRef = useRef(motionOn);
+  motionOnRef.current = motionOn;
+  // Live clock: day, dusk and night follow the current time in India.
+  const [liveClock, setLiveClock] = useState(() => stored('pc-live') === '1');
+  const [nightMix, setNightMix] = useState(1);
+  const [motionData, setMotionData] = useState<MotionData | null>(null);
   const [gameOpen, setGameOpen] = useState(false);
   const social = useSocial();
   const deckRef = useRef<Poi[]>([]);
@@ -99,9 +115,6 @@ export default function App() {
     const source = layers[layerRef.current]?.dzi || metadata.dzi;
     let animationFrame = 0;
     let smoothing = true;
-    // Keep the current view when switching layers; all layers share one pixel lattice.
-    const previous = lastViewRef.current;
-    lastViewRef.current = null;
     let viewer: OpenSeadragon.Viewer;
     try {
       viewer = OpenSeadragon({
@@ -115,10 +128,12 @@ export default function App() {
         animationTime: 0.55,
         blendTime: 0.12,
         springStiffness: 9,
-        visibilityRatio: 0.4,
+        // The art always fills the window: no zooming out past fill, no panning off the image.
+        visibilityRatio: 1,
         homeFillsViewer: true,
         constrainDuringPan: true,
-        minZoomImageRatio: 0.85,
+        minZoomImageRatio: 1,
+        ...({ silenceMultiImageWarnings: true } as object), // layers cross-fade as two identical-lattice images (option missing from @types)
         maxZoomPixelRatio: 4,
         immediateRender: false,
         placeholderFillStyle: '#d9cfae',
@@ -131,6 +146,7 @@ export default function App() {
       return;
     }
     viewerRef.current = viewer;
+    (window as unknown as { __viewer?: OpenSeadragon.Viewer }).__viewer = viewer; // QA hook
     const redraw = () => {
       if (animationFrame) return;
       animationFrame = requestAnimationFrame(() => {
@@ -163,8 +179,8 @@ export default function App() {
       return true;
     };
     viewer.addHandler('open', () => {
-      if (previous) { viewer.viewport.panTo(previous.center, true); viewer.viewport.zoomTo(previous.zoom, undefined, true); }
-      else restoreView();
+      stackRef.current = [{ layer: layerRef.current, item: viewer.world.getItemAt(0) }];
+      restoreView();
       redraw();
     });
     viewer.addHandler('tile-loaded', () => setLoading(false));
@@ -180,12 +196,82 @@ export default function App() {
     return () => {
       cancelAnimationFrame(animationFrame);
       window.removeEventListener('hashchange', onHash);
-      if (viewer.world.getItemCount()) lastViewRef.current = { center: viewer.viewport.getCenter(), zoom: viewer.viewport.getZoom() };
+      stackRef.current = [];
       viewer.destroy();
       if (viewerRef.current === viewer) viewerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metadata, layer, base, mapId]);
+  }, [metadata, base, mapId]);
+
+  // Cross-fade between layers (summer → dusk → night …): add the target on top at opacity 0 and ease
+  // it to `nightMix` (1 unless the live clock is mid-dusk); once fully opaque, drop the layers below.
+  useEffect(() => {
+    const viewer = viewerRef.current, stack = stackRef.current;
+    if (!viewer || !stack.length || !metadata) return;
+    const target = layerRef.current, to = target === 'night' ? nightMix : 1, token = ++fadeRef.current;
+    const fadeTo = (entry: { layer: Layer; item: OpenSeadragon.TiledImage }) => {
+      const from = entry.item.getOpacity(), start = performance.now(), duration = reducedMotion ? 0 : 900;
+      const step = (now: number) => {
+        if (token !== fadeRef.current) return;
+        const k = duration ? Math.min(1, (now - start) / duration) : 1, eased = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+        entry.item.setOpacity(from + (to - from) * eased);
+        if (k < 1) { requestAnimationFrame(step); return; }
+        if (to >= 1) for (const other of stack.slice()) if (other !== entry) { viewer.world.removeItem(other.item); stack.splice(stack.indexOf(other), 1); }
+      };
+      requestAnimationFrame(step);
+    };
+    const top = stack[stack.length - 1];
+    if (top.layer === target) { fadeTo(top); return; }
+    // Keep at most the image being faded out underneath the new one.
+    while (stack.length > 1) viewer.world.removeItem(stack.shift()!.item);
+    viewer.addTiledImage({ tileSource: localPath(base, layers[target]?.dzi || metadata.dzi), opacity: 0, success: (event) => {
+      const entry = { layer: target, item: (event as unknown as { item: OpenSeadragon.TiledImage }).item }; stack.push(entry);
+      if (token === fadeRef.current) fadeTo(entry); else { viewer.world.removeItem(entry.item); stack.pop(); }
+    } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layer, nightMix, metadata, base]);
+
+  // Live clock: dusk 17:45–19:15 and dawn 05:45–07:00 IST blend night over day; checked every 30 s.
+  useEffect(() => {
+    store('pc-live', liveClock ? '1' : '0');
+    if (!liveClock) { setNightMix(1); return; }
+    const apply = () => {
+      const now = new Date(Date.now() + 5.5 * 3600e3), m = now.getUTCHours() * 60 + now.getUTCMinutes();
+      const mix = m >= 1155 || m < 345 ? 1 : m >= 1065 ? (m - 1065) / 90 : m < 420 ? 1 - (m - 345) / 75 : 0;
+      setLayer(mix > 0 ? 'night' : 'A'); setNightMix(mix > 0 ? Math.max(0.05, mix) : 1);
+    };
+    apply();
+    const timer = window.setInterval(apply, 30000);
+    return () => window.clearInterval(timer);
+  }, [liveClock]);
+
+  // Motion overlay data is optional: without motion.json the map simply has no animation.
+  useEffect(() => {
+    if (!metadata) return;
+    const abort = new AbortController();
+    fetch(`${base}motion.json`, { signal: abort.signal })
+      .then((r) => (r.ok && (r.headers.get('content-type') || '').includes('json') ? r.json() : null))
+      .then((value: MotionData | null) => { if (value?.roads && value.blank) setMotionData(value); })
+      .catch(() => {});
+    return () => abort.abort();
+  }, [metadata, base]);
+
+  useEffect(() => {
+    const canvas = motionCanvasRef.current;
+    if (!motionData || !canvas) return;
+    const mix = (name: Layer) => stackRef.current.reduce((m, e) => { const o = e.item.getOpacity(); return m * (1 - o) + (e.layer === name ? o : 0); }, 0);
+    const motion = new MotionLayer(canvas, motionData, () => {
+      const v = viewerRef.current;
+      if (!v?.world.getItemCount() || !containerRef.current) return null;
+      const r = v.viewport.viewportToImageRectangle(v.viewport.getBounds(true));
+      return { x: r.x, y: r.y, w: r.width, h: r.height, cw: containerRef.current.clientWidth, ch: containerRef.current.clientHeight };
+    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current }));
+    motion.start();
+    (window as unknown as { __motion?: MotionLayer }).__motion = motion;
+    return () => motion.stop();
+  }, [motionData]);
+  useEffect(() => { store('pc-motion', motionOn ? '1' : '0'); }, [motionOn]);
+  useEffect(() => { if (motionData && miniBlankRef.current && metadata) paintMinimapBlank(miniBlankRef.current, motionData.blank, (MINIMAP_WIDTH * 2) / metadata.width); }, [motionData, metadata]);
 
   const zoom = useCallback((factor: number) => {
     const viewer = viewerRef.current;
@@ -326,6 +412,7 @@ export default function App() {
 
   return <main className={`app ${debug ? 'debug-active' : ''}`}>
     <div ref={containerRef} className="map-canvas" role="region" aria-label={`Interactive orthographic map of ${metadata?.city || 'the city'}. Drag to pan; scroll or pinch to zoom.`} />
+    <canvas ref={motionCanvasRef} className="motion-canvas" aria-hidden="true" />
     <svg className="map-overlay" width="100%" height="100%" aria-hidden="true">
       {coverage.length > 2 && <polygon points={coverage.map((p) => `${p.x},${p.y}`).join(' ')} className="coverage-line" />}
       {debug && metadata?.pois.map((poi) => {
@@ -413,9 +500,12 @@ export default function App() {
       <button onClick={() => setInfoOpen(true)} aria-label="About this map" title="About (?)"><Info size={18} /></button>
       {layersOpen && <div className="layer-menu" role="menu">
         <span className="menu-heading">Time &amp; climate</span>
-        {SCENE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
+        {SCENE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
         <span className="menu-heading">Style</span>
-        {STYLE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
+        {STYLE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
+        <span className="menu-heading">Motion</span>
+        <button role="menuitemcheckbox" aria-checked={liveClock} className={liveClock ? 'active' : ''} disabled={!layers.night} onClick={() => setLiveClock(!liveClock)} title="Day, dusk and night follow the current time in India">Live India time</button>
+        <button role="menuitemcheckbox" aria-checked={motionOn} className={motionOn ? 'active' : ''} disabled={!motionData} onClick={() => setMotionOn(!motionOn)} title={reducedMotion ? 'Your system asks for reduced motion' : 'Traffic, metro, windows, lamps, fireflies and monsoon clouds'}>Night &amp; weather motion</button>
         <p>{Object.keys(layers).length < 6 ? 'Greyed layers are still being rendered or tiled. ' : ''}All layers are the same geometry rendered with different light and palette. No generative art layer exists yet.</p>
       </div>}
     </nav>
@@ -423,6 +513,7 @@ export default function App() {
     {metadata && <div className="minimap" aria-label="Overview map; click or drag to move">
       <div ref={minimapRef} className="minimap-frame" style={{ width: MINIMAP_WIDTH, height: miniHeight }} onPointerDown={panFromMinimap} onPointerMove={panFromMinimap}>
         <img src={minimapSrc} alt="" draggable={false} />
+        <canvas ref={miniBlankRef} className="minimap-blank" width={MINIMAP_WIDTH * 2} height={miniHeight * 2} aria-hidden="true" />
         {miniRect && <span className="minimap-view" style={{ left: miniRect.x, top: miniRect.y, width: miniRect.w, height: miniRect.h }} />}
       </div>
       <span className="minimap-zoom">{imageZoom ? `${Math.round(imageZoom * 100)}%` : '—'}</span>

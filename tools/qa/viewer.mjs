@@ -85,6 +85,50 @@ try {
   check('night layer opens at same view', post.l === 'night' && Math.abs(post.cx - pre.cx) < 1, `${pre.cx}->${post.cx}`);
   await page.screenshot({path: path.join(out, 'desktop-night.png')});
   await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Summer day")'); await settle(page);
+  // Zoom-out never reveals blank space: the art fills the window and stays inside the image.
+  for (let i = 0; i < 12; i++) { await page.mouse.wheel(0, 240); await page.waitForTimeout(40); } await settle(page);
+  const bounds = await page.evaluate(() => { const c = document.querySelector('.map-canvas').getBoundingClientRect(); return {w: c.width, h: c.height}; });
+  const view = await page.evaluate(() => { const s = Object.fromEntries(new URLSearchParams(location.hash.slice(1))); return {cx: +s.cx, cy: +s.cy, z: +s.z}; });
+  const halfW = bounds.w / view.z / 2, halfH = bounds.h / view.z / 2;
+  const tol = meta.width / 2000; // share hash rounds zoom to 5 decimals
+  check('zoom-out never shows space outside the art', view.cx - halfW >= -tol && view.cy - halfH >= -tol && view.cx + halfW <= meta.width + tol && view.cy + halfH <= meta.height + tol, `view ${Math.round(view.cx - halfW)},${Math.round(view.cy - halfH)} → ${Math.round(view.cx + halfW)},${Math.round(view.cy + halfH)}`);
+  const motion = () => page.evaluate(() => ({...window.__motion?.stats}));
+  check('never-rendered regions get textured ground (map + minimap)', (await motion()).blankRects > 0 && (await page.locator('.minimap-blank').count()) === 1, `${(await motion()).blankRects} blank regions in view`);
+
+  // Day → night cross-fade: two images during the fade, one after.
+  await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Night")');
+  await page.waitForTimeout(350);
+  const midItems = await page.evaluate(() => window.__viewer?.world.getItemCount());
+  await page.waitForTimeout(1400);
+  const endItems = await page.evaluate(() => window.__viewer?.world.getItemCount());
+  check('day→night cross-fades through two images', midItems === 2 && endItems === 1, `${midItems} during, ${endItems} after`);
+
+  // Night motion at full-city zoom: traffic and trains drawn, frame rate measured.
+  const f0 = (await motion()).frames, t0 = Date.now(); await page.waitForTimeout(3000);
+  const night = await motion(), fps = ((night.frames - f0) * 1000) / (Date.now() - t0);
+  check('night motion draws traffic and metro at full-city zoom', night.carsDrawn > 200 && night.trains >= 2, `${night.carsDrawn}/${night.cars} cars, ${night.trains} trains`);
+  check('night motion holds frame rate (≥ 24 of 30 fps cap)', fps >= 24, `${fps.toFixed(1)} fps`);
+  await page.screenshot({path: path.join(out, 'desktop-night-motion.png')});
+  // Close zoom: living windows, lamps and fireflies (Capital complex has a park beside it).
+  const vs = meta.pois.find(p => p.id === 'vidhan-sabha');
+  await page.evaluate(([x, y]) => { location.hash = `#v=2&m=${new URLSearchParams(location.hash.slice(1)).get('m')}&l=night&cx=${x}&cy=${y}&z=0.3`; }, vs.image); await settle(page); await page.waitForTimeout(800);
+  const close = await motion();
+  check('close night: lit windows, lamp glow and fireflies', close.windowsLit > 0 && close.lamps > 0 && close.fireflies > 0, `${close.windowsLit} windows, ${close.lamps} lamps, ${close.fireflies} fireflies`);
+  await page.screenshot({path: path.join(out, 'desktop-night-close.png')});
+  // Motion switch in the layer menu turns animation off.
+  await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Night & weather motion")'); await page.waitForTimeout(500);
+  check('motion switch turns animation off', (await motion()).carsDrawn === 0 && (await motion()).windowsLit === 0);
+  await page.click('.layer-menu button:has-text("Night & weather motion")'); await page.waitForTimeout(300);
+  // Monsoon: drifting cloud shadows.
+  await page.click('.layer-menu button:has-text("Monsoon")'); await page.keyboard.press('0'); await settle(page); await page.waitForTimeout(1200);
+  check('monsoon layer draws cloud shadows', (await motion()).clouds > 0, `${(await motion()).clouds} clouds`);
+  // Live clock follows India time (day → A, dusk/night → night).
+  await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Live India time")'); await page.waitForTimeout(1500);
+  const ist = await page.evaluate(() => { const d = new Date(Date.now() + 5.5 * 3600e3); return d.getUTCHours() * 60 + d.getUTCMinutes(); });
+  const wantNight = ist >= 1065 || ist < 420;
+  check('live India time picks day or night', (await state()).l === (wantNight ? 'night' : 'A'), `IST ${Math.floor(ist / 60)}:${String(ist % 60).padStart(2, '0')} → ${(await state()).l}`);
+  await page.click('.layer-menu button:has-text("Live India time")'); await page.click('.layer-menu button:has-text("Summer day")'); await settle(page);
+
   // Minimap click recentres the map at the corresponding image position.
   await page.mouse.move(720, 450); for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, -120); await page.waitForTimeout(60); } await settle(page);
   const mm = await page.locator('.minimap-frame').boundingBox();
@@ -138,6 +182,18 @@ try {
   await broken.goto(`${base}/?map=${mapId}#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.25`); await broken.waitForSelector('.toast', {timeout: 10000}).catch(() => null);
   check('missing tiles show notice', await broken.locator('.toast').count() >= 1 && (await broken.locator('.toast').first().textContent()).includes('missing'));
   await broken.screenshot({path: path.join(out, 'missing-tiles.png')}); await broken.close();
+
+  // prefers-reduced-motion: no animation by default, layer switches are instant.
+  const calm = await browser.newContext({viewport: {width: 1200, height: 800}, reducedMotion: 'reduce'});
+  await calm.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });
+  const still = await calm.newPage(); await still.goto(`${base}/?map=${mapId}#v=2&m=${mapId}&l=night&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.03`); await still.waitForSelector('.minimap-view'); await settle(still); await still.waitForTimeout(800);
+  const calmStats = await still.evaluate(() => ({...window.__motion?.stats}));
+  await still.click('[aria-label="Map layers"]');
+  const motionOff = await still.locator('.layer-menu [aria-checked="false"]:has-text("Night & weather motion")').count();
+  await still.click('.layer-menu button:has-text("Summer day")'); await still.waitForTimeout(200);
+  const calmItems = await still.evaluate(() => window.__viewer?.world.getItemCount());
+  check('reduced motion: no particles, instant layer switch', calmStats.carsDrawn === 0 && calmItems === 1 && motionOff === 1, `${calmStats.carsDrawn} cars, ${calmItems} images, switch off: ${motionOff === 1}`);
+  await calm.close();
 
   // Mobile layout: controls, search and minimap must not overlap; touch device emulation.
   const mobile = await browser.newContext({viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true, deviceScaleFactor: 2});

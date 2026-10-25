@@ -35,6 +35,10 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
 <img src="docs/demo.gif" alt="Indian Pixel City demo: city overview, zoom into the sectors, Akshardham, the capital complex, night, place filters, minimap jump" width="100%" />
 <br />
 <sub>24-second highlight: city overview → sectors → Akshardham → capital complex · <a href="docs/demo.mp4">full 45-second MP4</a> adds night, place filters and a minimap jump</sub>
+<br /><br />
+<img src="docs/night.gif" alt="Summer day cross-fades to night around Akshardham; headlights and tail lights flow along real roads, windows and street lamps flicker" width="100%" />
+<br />
+<sub>Night motion: day → night cross-fade, then traffic on real OSM roads, lit windows, lamp flicker and park fireflies</sub>
 </div>
 
 ## ✦ At a glance
@@ -137,6 +141,18 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 - **Minimap** with a live view box (click or drag to move), share links with view, layer, filters and image version, and a mobile layout.
 - **Random landmark** (🎲 / `R`): a shuffle-bag tour of the curated landmarks, idea borrowed from Isometric Málaga.
 
+**Night & weather motion** (an animated overlay above the static tiles)
+- **Day → dusk → night cross-fade**: switching layers fades between two tile sets instead of swapping. **Live India time** (layer menu) follows the real clock, blending night in from 17:45 and out after dawn.
+- **Traffic on real roads**: about 20,000 cars on OSM roads, denser on trunk and primary roads. White headlights run one way and red tail lights the other, in separate lanes.
+- **Metro Line 2**: lit trains run both viaduct sections (Sector-10A → Mahatma Mandir, Dholakuva → Raysan), stopping at the 12 real stations.
+- **Living windows** switch on and off on their own rhythms, **street lamps** pulse gently (and a few flicker), **busy blocks** glow, and **fireflies** drift in parks.
+- **Monsoon cloud shadows** slowly cross the monsoon layer.
+- Runs at ≤ 30 fps (≈ 1–2 ms per frame at full-city zoom) and draws only what is on screen. It pauses in hidden tabs, is off under `prefers-reduced-motion`, and has an on/off switch in the layer menu.
+
+**Always full-window**
+- You can't zoom out past the window or pan off the art. Regions outside the OSM extract, which were never rendered, get a textured open-ground fill on both the map and the minimap instead of flat beige.
+- UI panels, pins and the game use short, decelerating entrance animations (150–260 ms). See the UI motion notes in [docs/REFERENCES.md](docs/REFERENCES.md).
+
 **Play together**
 - **Who's here now**: a stack of deterministic 12×12 pixel faces (one per open tab, generated from a random anonymous id), with a live count and total visits. No IPs, cookies or accounts are used.
 - **Daily "Find the landmark"** (`D`): everyone gets the same 3 places each day (IST). The clue is a close-up crop of the real tiles. Pan the crosshair onto the spot and guess, and you are scored by ground distance. After you guess, you see other visitors' guesses as their faces, plus today's board and a copyable 🟩🟨🟧🟥 result. Without the social server the counter hides and the game plays solo. See [docs/ENGAGEMENT-IDEAS.md](docs/ENGAGEMENT-IDEAS.md) for the ranked ideas behind it.
@@ -167,6 +183,7 @@ The exported map in `outputs/maps/gandhinagar-city` opens straight away. To rebu
 | `npm run build-scene` | Global layout + one scene per region (`outputs/city/scenes/`) |
 | `npm run render-pilot` | Render every layer (`-- --mode A` for one); resumable, hash-checked chunks |
 | `npm run export-map` | Deep Zoom tiles straight from chunks + viewer metadata |
+| `npm run export-motion` | Road, metro, lamp, window, park and blank-region data for the night motion overlay (`motion.json`) |
 | `npm run verify` · `verify:browser` | Node + Python tests · Playwright viewer QA |
 | `npm run demo` | Record the navigation demo (MP4 + README GIF) |
 
@@ -247,7 +264,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 29/29 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 39/39 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (45 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
@@ -262,6 +279,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 - [x] Summer, monsoon, winter and night layers
 - [x] Pixel-icon place filters, transport filters, close-zoom labels, typo-tolerant search
 - [x] Visitor presence faces and the daily Find-the-landmark game
+- [x] Night motion: cross-fade, live India time, traffic, metro, windows, lamps, fireflies, monsoon clouds
 - [ ] Live cursors of other visitors, scavenger hunts (see docs/ENGAGEMENT-IDEAS.md)
 - [ ] GIFT City and the riverfront south of the current extent
 - [ ] Terrain (open DEM) instead of flat ground
