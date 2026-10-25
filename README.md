@@ -167,7 +167,7 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 > **Requires** Node.js 22.13+, Python 3.9+ and Google Chrome. FFmpeg is needed only for the demo video.
 
 ```bash
-git clone https://github.com/ImliStack/Pixel-City-Gandhinagar-.git "Pixel City Gandhinagar"
+git clone https://github.com/ImliStack/Pixel-City-Gandhinagar.git "Pixel City Gandhinagar"
 cd "Pixel City Gandhinagar"
 npm ci
 python3 -m venv .venv && .venv/bin/python -m pip install -r requirements.lock.txt
