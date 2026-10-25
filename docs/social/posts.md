@@ -29,12 +29,12 @@ Zoom from the whole city down to a single temple roof, flip to monsoon or night,
 
 **3/3**
 ```
-Built from OpenStreetMap + Three.js, rendered on my 8 GB MacBook, served from Cloudflare.
+Built from OpenStreetMap + Three.js on my 8 GB MacBook, served from Cloudflare.
 
-Open source: https://github.com/ImliStack/Pixel-City-Gandhinagar
+If you love it: play today's game 🎯, share it with a friend, and drop a ⭐ on GitHub 🙏
+https://github.com/ImliStack/Pixel-City-Gandhinagar
 
-Gandhinagar is first. Which Indian city should be next? 👇
-
+Which Indian city next? 👇
 — ImliStack · imlistack.com
 ```
 
@@ -42,10 +42,11 @@ Gandhinagar is first. Which Indian city should be next? 👇
 ```
 Saw so many pixel maps of London, NYC & co… none for an Indian city 🇮🇳 So I built one 🏙️
 
-Gandhinagar, every real building, day → night with live traffic & metro + a daily landmark game.
+Gandhinagar, every real building, day → night + a daily landmark game.
 
 https://pixel-city-gandhinagar.imlistack.workers.dev
 
+Love it? Play, share & ⭐ on GitHub 🙏
 by ImliStack · imlistack.com
 ```
 
@@ -75,6 +76,11 @@ A few things I'm proud of:
 
 Explore it: https://pixel-city-gandhinagar.imlistack.workers.dev
 Code (open source): https://github.com/ImliStack/Pixel-City-Gandhinagar
+
+If you enjoy it, I'd love three small things 🙏
+🎯 Play today's "Find the landmark" game and post your score
+🤝 Share it with a friend who'd enjoy exploring Gandhinagar
+⭐ Give the project a star on GitHub. It really helps open-source work get seen
 
 Gandhinagar is just the first. Which Indian city would you like to see next? Tell me in the comments 👇
 
