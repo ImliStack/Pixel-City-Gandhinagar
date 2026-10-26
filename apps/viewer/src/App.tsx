@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
-import { Check, ChevronDown, Dices, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
+import { Check, ChevronDown, Dices, Github, Star, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
 import { describePoi, isStreet, kindLabel, nearestArea, pointForPoi, searchPois, type Metadata, type Poi } from './types';
 import { TileCrop } from './TileCrop';
 import { groundMeters } from '../shared/daily.mjs';
@@ -11,6 +11,8 @@ import { MotionLayer, paintMinimapBlank, type MotionData } from './motion';
 import { DailyGame } from './DailyGame';
 
 const DEFAULT_MAP = 'gandhinagar-city';
+const GITHUB_URL = 'https://github.com/ImliStack/Pixel-City-Gandhinagar';
+const IMLISTACK_URL = 'https://imlistack.com';
 // Build-pipeline hints only make sense on a developer's machine, not on the deployed site.
 const isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(window.location.hostname);
 // The historical Jaipur export stays at /map/; new city exports live under /maps/<id>/.
@@ -449,6 +451,7 @@ export default function App() {
 
     <div className="brand-chip" title={metadata?.subtitle}>
       <strong>{metadata?.city || 'Indian Pixel City'}</strong><span>{metadata?.subtitle || 'Local edition'}</span>
+      <span className="brand-links"><a href={IMLISTACK_URL} target="_blank" rel="noopener"><span>by <b>Imli</b>Stack</span></a><a href={GITHUB_URL} target="_blank" rel="noopener" className="gh" aria-label="Star Pixel City on GitHub"><Star size={11} />Star on GitHub</a></span>
     </div>
 
     <div className={`search ${searchOpen ? 'open' : ''}`} role="combobox" aria-expanded={searchOpen && results.length > 0} aria-haspopup="listbox">
@@ -565,6 +568,7 @@ export default function App() {
       <p><strong>Coverage.</strong> {metadata?.coverage?.note || 'The dashed line marks the working extent.'}</p>
       {maps.length > 1 && <p><strong>Maps on this machine.</strong> {maps.map((m, i) => <span key={m.id}>{i ? ' · ' : ''}{m.id === mapId ? <b>{m.subtitle || m.id}</b> : <a href={`/?map=${encodeURIComponent(m.id)}`}>{m.subtitle || m.id}</a>}</span>)} · <a href="/?map=jaipur">Jaipur (historical)</a></p>}
       <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · <kbd>R</kbd> random landmark · <kbd>D</kbd> daily game · arrows pan · <kbd>G</kbd> debug</p>
+      <p className="about-links"><a href={GITHUB_URL} target="_blank" rel="noopener"><Github size={15} />Source on GitHub. A ⭐ helps</a><a href={IMLISTACK_URL} target="_blank" rel="noopener"><span>More from <b>ImliStack</b> →</span></a></p>
       <p className="fine">{metadata?.attribution}</p>
     </section></div>}
   </main>;
