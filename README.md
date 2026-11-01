@@ -97,6 +97,16 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
   </tr>
 </table>
 
+## ✦ On your phone
+
+<table><tr>
+<td width="33%"><img src="docs/screenshots/mobile-akshardham.jpg" alt="Akshardham on a phone" /></td>
+<td width="33%"><img src="docs/screenshots/mobile-night.jpg" alt="Night with traffic on a phone" /></td>
+<td width="33%"><img src="docs/screenshots/mobile-hunt.jpg" alt="Scavenger hunt on a phone" /></td>
+</tr></table>
+
+<sub>Vertical phone tour: <a href="docs/social/pixel-city-mobile.mp4">docs/social/pixel-city-mobile.mp4</a> (38 s, 1080×1920)</sub>
+
 ## ✦ How close is it to the real Gandhinagar?
 
 Measured with [`tools/qa/fidelity.py`](tools/qa/fidelity.py) inside the OSM city polygon (way/1104668864, 61.4 km²). Results are in `outputs/city/fidelity.json`.
