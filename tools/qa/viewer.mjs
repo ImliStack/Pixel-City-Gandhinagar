@@ -196,6 +196,14 @@ try {
   check('missing tiles show notice', await broken.locator('.toast').count() >= 1 && (await broken.locator('.toast').first().textContent()).includes('could not load'));
   await broken.screenshot({path: path.join(out, 'missing-tiles.png')}); await broken.close();
 
+  // Fresh visit (no view in the URL): the map opens on the whole city, then glides in to the capital complex.
+  const intro = await context.newPage(); await intro.goto(`${base}/?map=${mapId}&intro=1`); await intro.waitForSelector('.minimap-view');
+  await intro.waitForTimeout(5000);
+  const iz = await intro.evaluate(() => Object.fromEntries(new URLSearchParams(location.hash.slice(1))));
+  const vs0 = meta.pois.find(p => p.id === 'vidhan-sabha').image;
+  check('fresh visit zooms in to the capital complex', Number(iz.z) > z0 * 2.5 && Math.abs(iz.cx - vs0[0]) < 50 && Math.abs(iz.cy - vs0[1]) < 50, `z ${z0} → ${iz.z}`);
+  await intro.close();
+
   // prefers-reduced-motion: no animation by default, layer switches are instant.
   const calm = await browser.newContext({viewport: {width: 1200, height: 800}, reducedMotion: 'reduce'});
   await calm.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });

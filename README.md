@@ -271,7 +271,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 42/42 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 43/43 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (49 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |

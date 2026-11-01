@@ -187,9 +187,29 @@ export default function App() {
     };
     viewer.addHandler('open', () => {
       stackRef.current = [{ layer: layerRef.current, item: viewer.world.getItemAt(0) }];
-      restoreView();
+      if (!restoreView()) playIntro();
       redraw();
     });
+    // Opening flourish for fresh visits (no shared view in the URL): start on the whole city, then glide
+    // in toward the capital complex. Skipped for shared links, reduced motion and automated QA (?intro=1 forces it).
+    const playIntro = () => {
+      const forced = new URLSearchParams(window.location.search).get('intro') === '1';
+      if (!forced && (reducedMotion || navigator.webdriver)) return;
+      const target = metadata.pois.find((p) => p.id === 'vidhan-sabha') || metadata.pois.find((p) => p.curated);
+      const point = target && pointForPoi(target);
+      if (!point) return;
+      type Spring = { animationTime: number };
+      const vp = viewer.viewport as unknown as { zoomSpring: Spring; centerSpringX: Spring; centerSpringY: Spring };
+      const springs = [vp.zoomSpring, vp.centerSpringX, vp.centerSpringY];
+      window.setTimeout(() => {
+        if (viewerRef.current !== viewer) return;
+        springs.forEach((sp) => { sp.animationTime = 2.6; });
+        viewer.viewport.panTo(viewer.viewport.imageToViewportCoordinates(point[0], point[1]));
+        viewer.viewport.zoomTo(viewer.viewport.getHomeZoom() * 3.2);
+        viewer.viewport.applyConstraints();
+        window.setTimeout(() => springs.forEach((sp) => { sp.animationTime = 0.55; }), 2800);
+      }, 900);
+    };
     viewer.addHandler('tile-loaded', () => setLoading(false));
     viewer.addHandler('open-failed', () => { setError('The local image pyramid could not be opened. Render and export the map first.'); setLoading(false); });
     viewer.addHandler('tile-load-failed', () => { setMissingTiles((n) => n + 1); setLoading(false); });
