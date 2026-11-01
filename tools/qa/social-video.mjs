@@ -45,6 +45,19 @@ async function tour() {
   await caption('Daily game: find the landmark', 'Same 3 places for everyone · see other players live'); await page.keyboard.press('d'); await wait(2400);
   await page.click('[data-testid="guess"]'); await wait(3200);
   await page.keyboard.press('Escape');
+  await caption('Scavenger hunts', 'Zoom in on a real place to stamp it'); await page.keyboard.press('h'); await wait(700);
+  await page.click('[data-testid="hunt-metro"]'); await wait(900);
+  await go(meta.pois.find(p => p.category === 'metro' && p.name === 'Akshardham').image, 0.3); await wait(3600);
+  await page.keyboard.press('Escape');
+  // A second visitor (another tab) looking nearby shows up as a live cursor.
+  // Own context: a second page in the recording context would resize the recorded window.
+  const friendCtx = await browser.newContext({viewport: {width: 800, height: 600}}), friend = await friendCtx.newPage(), vs = poi('vidhan-sabha');
+  await friend.goto(`${base}/?map=${mapId}#v=2&m=${mapId}&l=A&cx=${vs[0] + 900}&cy=${vs[1] + 500}&z=0.2`); await friend.waitForSelector('.minimap-view');
+  await caption('See where others are exploring, live'); await go(vs, 0.08); await wait(5200);
+  await friendCtx.close();
+  // Birds by day: centre on the flock closest to mid-flight.
+  const flock = await page.evaluate(() => { const m = window.__motion; const f = m.flocks.slice().sort((a, b) => Math.abs(a.s / a.len - 0.5) - Math.abs(b.s / b.len - 0.5))[0]; const k = f.s / f.len; return [f.from[0] + (f.to[0] - f.from[0]) * k, f.from[1] + (f.to[1] - f.from[1]) * k - 150]; });
+  await caption('Birds by day, with shadows on the ground'); await go(flock, 0.2); await wait(4200);
   await caption('Explore it yourself 👇', 'pixel-city-gandhinagar.imlistack.workers.dev'); await go([meta.width / 2, meta.height / 2], 0.012); await wait(3000);
   await caption('Built by ImliStack', 'imlistack.com · open source on GitHub'); await wait(2600);
 }
@@ -52,7 +65,7 @@ try {
   await page.goto(`${base}/?map=${mapId}`); await page.waitForSelector('.minimap-view'); await wait(2500);
   await tour(); // warm-up pass: loads every tile the tour needs
   // Fresh game for the kept pass: forget today's local progress for this tab.
-  await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('pc-daily-')) localStorage.removeItem(k); });
+  await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (k.startsWith('pc-daily-') || k.startsWith('pc-hunt')) localStorage.removeItem(k); });
   await page.reload(); await page.waitForSelector('.minimap-view'); await wait(2500);
   var keepFrom = (Date.now() - t0) / 1000;
   await tour();

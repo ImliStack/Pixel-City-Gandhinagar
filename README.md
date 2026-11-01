@@ -105,7 +105,7 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
 <td width="33%"><img src="docs/screenshots/mobile-hunt.jpg" alt="Scavenger hunt on a phone" /></td>
 </tr></table>
 
-<sub>Vertical phone tour: <a href="docs/social/pixel-city-mobile.mp4">docs/social/pixel-city-mobile.mp4</a> (38 s, 1080×1920)</sub>
+<sub>Vertical phone tour: <a href="docs/social/pixel-city-mobile.mp4">docs/social/pixel-city-mobile.mp4</a> (41 s, 1080×1920)</sub>
 
 ## ✦ How close is it to the real Gandhinagar?
 

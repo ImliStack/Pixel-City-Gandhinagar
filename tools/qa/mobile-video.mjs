@@ -15,11 +15,11 @@ await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('vite
 const meta = JSON.parse(fs.readFileSync(`outputs/maps/${mapId}/metadata.json`)), poi = id => meta.pois.find(p => p.id === id).image;
 
 // ---- Phone frame (1080×1920 canvas): background, then video in the screen hole, then bezel on top.
-const W = 1080, H = 1920, SW = 758, SH = Math.round(SW * phone.height / phone.width), SX = (W - SW) / 2, SY = 150, R = 64, B = 24;
+const W = 1080, H = 1920, SW = 690, SH = Math.round(SW * phone.height / phone.width), SX = (W - SW) / 2, SY = 110, R = 60, B = 22;
 const bg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1d2a22"/><stop offset="1" stop-color="#0f1512"/></linearGradient></defs>
   <rect width="${W}" height="${H}" fill="url(#g)"/>
-  <text x="${W / 2}" y="${SY + SH + B + 110}" font-family="Helvetica, Arial" font-size="40" font-weight="700" fill="#f2f1ea" text-anchor="middle">Pixel City Gandhinagar</text>
-  <text x="${W / 2}" y="${SY + SH + B + 160}" font-family="Helvetica, Arial" font-size="28" fill="#a9ada4" text-anchor="middle">pixel-city-gandhinagar.imlistack.workers.dev</text>
+  <text x="${W / 2}" y="${SY + SH + B + 92}" font-family="Helvetica, Arial" font-size="40" font-weight="700" fill="#f2f1ea" text-anchor="middle">Pixel City Gandhinagar</text>
+  <text x="${W / 2}" y="${SY + SH + B + 140}" font-family="Helvetica, Arial" font-size="28" fill="#a9ada4" text-anchor="middle">pixel-city-gandhinagar.imlistack.workers.dev</text>
   <text x="${W / 2}" y="${H - 40}" font-family="Helvetica, Arial" font-size="30" font-weight="700" fill="#9fd36b" text-anchor="middle">Imli<tspan fill="#f2f1ea">Stack</tspan></text></svg>`;
 const bezel = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><defs><mask id="m"><rect width="${W}" height="${H}" fill="#fff"/><rect x="${SX}" y="${SY}" width="${SW}" height="${SH}" rx="${R}" fill="#000"/></mask></defs>
   <g mask="url(#m)"><rect x="${SX - B}" y="${SY - B}" width="${SW + 2 * B}" height="${SH + 2 * B}" rx="${R + B}" fill="#16181a"/><rect x="${SX - B + 3}" y="${SY - B + 3}" width="${SW + 2 * B - 6}" height="${SH + 2 * B - 6}" rx="${R + B - 3}" fill="none" stroke="#3a3e42" stroke-width="3"/></g>
@@ -30,7 +30,7 @@ await sharp(Buffer.from(bezel)).png().toFile(`${out}/bezel.png`);
 const framed = async (shot, file) => sharp(`${out}/bg.png`).composite([{input: await sharp(shot).resize(SW, SH).png().toBuffer(), left: SX, top: SY}, {input: `${out}/bezel.png`, left: 0, top: 0}]).jpeg({quality: 88}).toFile(file);
 
 const browser = await chromium.launch({headless: true, executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: [`--window-size=${phone.width},${phone.height}`]});
-const context = await browser.newContext({viewport: phone, screen: phone, isMobile: true, hasTouch: true, deviceScaleFactor: scale, recordVideo: {dir: out, size: {width: phone.width * scale, height: phone.height * scale}}});
+const context = await browser.newContext({viewport: phone, screen: phone, isMobile: true, hasTouch: true, deviceScaleFactor: scale, recordVideo: {dir: out, size: phone}}); // the recorder captures CSS pixels; it is upscaled into the frame
 await context.route('**/*', r => { const u = r.request().url(); return u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:') ? r.continue() : r.abort(); });
 const page = await context.newPage(), t0 = Date.now(), wait = ms => page.waitForTimeout(ms);
 const caption = text => page.evaluate(text => {
