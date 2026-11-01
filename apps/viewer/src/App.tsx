@@ -301,7 +301,7 @@ export default function App() {
       if (!v?.world.getItemCount() || !containerRef.current) return null;
       const r = v.viewport.viewportToImageRectangle(v.viewport.getBounds(true));
       return { x: r.x, y: r.y, w: r.width, h: r.height, cw: containerRef.current.clientWidth, ch: containerRef.current.clientHeight };
-    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current }));
+    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current, sun: stackRef.current[stackRef.current.length - 1]?.layer || 'A' }));
     motion.start();
     (window as unknown as { __motion?: MotionLayer }).__motion = motion;
     return () => motion.stop();
@@ -564,7 +564,7 @@ export default function App() {
         {STYLE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
         <span className="menu-heading">Motion</span>
         <button role="menuitemcheckbox" aria-checked={liveClock} className={liveClock ? 'active' : ''} disabled={!layers.night} onClick={() => setLiveClock(!liveClock)} title="Day, dusk and night follow the current time in India">Live India time</button>
-        <button role="menuitemcheckbox" aria-checked={motionOn} className={motionOn ? 'active' : ''} disabled={!motionData} onClick={() => setMotionOn(!motionOn)} title={reducedMotion ? 'Your system asks for reduced motion' : 'Traffic, metro, windows, lamps, fireflies and monsoon clouds'}>Night &amp; weather motion</button>
+        <button role="menuitemcheckbox" aria-checked={motionOn} className={motionOn ? 'active' : ''} disabled={!motionData} onClick={() => setMotionOn(!motionOn)} title={reducedMotion ? 'Your system asks for reduced motion' : 'Birds by day; traffic, metro, windows, lamps and fireflies at night; monsoon clouds'}>Night &amp; weather motion</button>
         <p>{Object.keys(layers).length < 6 ? 'Greyed layers are still being rendered or tiled. ' : ''}All layers are the same geometry rendered with different light and palette. No generative art layer exists yet.</p>
       </div>}
     </nav>

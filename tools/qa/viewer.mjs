@@ -108,6 +108,11 @@ try {
   const motion = () => page.evaluate(() => ({...window.__motion?.stats}));
   check('never-rendered regions get textured ground (map + minimap)', (await motion()).blankRects > 0 && (await page.locator('.minimap-blank').count()) === 1, `${(await motion()).blankRects} blank regions in view`);
 
+  // Daytime birds: flocks with ground shadows are drawn once zoomed in a little.
+  await page.evaluate(() => { const h = Object.fromEntries(new URLSearchParams(location.hash.slice(1))); location.hash = `#v=2&m=${h.m}&l=A&cx=${h.cx}&cy=${h.cy}&z=0.05`; }); await settle(page);
+  check('daytime bird flocks are drawn', (await motion()).birds > 0, `${(await motion()).birds} birds in view`);
+  await page.keyboard.press('0'); await settle(page);
+
   // Day → night cross-fade: two images during the fade, one after.
   await page.click('[aria-label="Map layers"]'); await page.click('.layer-menu button:has-text("Night")');
   await page.waitForTimeout(350);
@@ -232,7 +237,7 @@ try {
   const motionOff = await still.locator('.layer-menu [aria-checked="false"]:has-text("Night & weather motion")').count();
   await still.click('.layer-menu button:has-text("Summer day")'); await still.waitForTimeout(200);
   const calmItems = await still.evaluate(() => window.__viewer?.world.getItemCount());
-  check('reduced motion: no particles, instant layer switch', calmStats.carsDrawn === 0 && calmItems === 1 && motionOff === 1, `${calmStats.carsDrawn} cars, ${calmItems} images, switch off: ${motionOff === 1}`);
+  check('reduced motion: no particles, instant layer switch', calmStats.carsDrawn === 0 && !calmStats.birds && calmItems === 1 && motionOff === 1, `${calmStats.carsDrawn} cars, ${calmItems} images, switch off: ${motionOff === 1}`);
   await calm.close();
 
   // Mobile layout: controls, search and minimap must not overlap; touch device emulation.

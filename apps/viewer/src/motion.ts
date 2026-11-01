@@ -9,17 +9,20 @@ export type MotionData = {
   roads: { w: number; oneway: number; p: number[] }[];
   metro: { line: number[]; stations: { name: string; at: number }[] }[];
   lamps: number[]; windows: number[]; fireflies: number[]; glows: [number, number, number][];
+  sky?: { shadowPerMetre: Record<string, [number, number]>; liftPerMetre: [number, number]; roosts: [number, number][] };
 };
 export type View = { x: number; y: number; w: number; h: number; cw: number; ch: number };
-export type Scene = { night: number; monsoon: number; animate: boolean };
-export type MotionStats = { fps: number; cars: number; carsDrawn: number; trains: number; windowsLit: number; lamps: number; fireflies: number; clouds: number; blankRects: number; frames: number; drawMs: number };
+export type Scene = { night: number; monsoon: number; animate: boolean; sun: string };
+export type MotionStats = { fps: number; cars: number; carsDrawn: number; trains: number; windowsLit: number; lamps: number; fireflies: number; clouds: number; blankRects: number; frames: number; drawMs: number; birds: number; birdAt?: [number, number] };
 
+const BIRD_SPEED = 70; // image px/s ≈ 14 m/s
 const MAX_CARS = 40000, DRAW_CARS = 3000, CAR_SPACING = 450, FRAME_MS = 1000 / 30, CAR_SPEED = [45, 85], TRAIN_SPEED = 160, DWELL = 12, TRAIN_LEN = 320;
 const hash = (n: number) => { let h = n | 0; h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
 
 type Road = { pts: Float32Array; cum: Float32Array; len: number; bbox: [number, number, number, number]; oneway: boolean };
 type Car = { road: number; s: number; dir: 1 | -1; v: number };
 type Train = { line: number; s: number; dir: 1 | -1; wait: number; next: number };
+type Flock = { from: [number, number]; to: [number, number]; s: number; len: number; alt: number; n: number; seed: number; hop: number };
 type Line = { pts: Float32Array; cum: Float32Array; len: number; stations: number[] };
 
 function prepare(p: number[]) {
@@ -79,6 +82,7 @@ export class MotionLayer {
   private cars: Car[] = [];
   private lines: Line[] = [];
   private trains: Train[] = [];
+  private flocks: Flock[] = [];
   private pattern: CanvasPattern | null = null;
   private warm = glowSprite('255,170,90');
   private lampGlow = glowSprite('255,190,110');
@@ -88,7 +92,7 @@ export class MotionLayer {
   private lastKey = '';
   private time = 0;
   private fpsWindow: number[] = [];
-  stats: MotionStats = { fps: 0, cars: 0, carsDrawn: 0, trains: 0, windowsLit: 0, lamps: 0, fireflies: 0, clouds: 0, blankRects: 0, frames: 0, drawMs: 0 };
+  stats: MotionStats = { fps: 0, cars: 0, carsDrawn: 0, trains: 0, windowsLit: 0, lamps: 0, fireflies: 0, clouds: 0, blankRects: 0, frames: 0, drawMs: 0, birds: 0 };
 
   constructor(private canvas: HTMLCanvasElement, private data: MotionData, private view: () => View | null, private scene: () => Scene) {
     this.ctx = canvas.getContext('2d')!;
@@ -105,6 +109,12 @@ export class MotionLayer {
     this.lines = data.metro.map((m) => { const p = prepare(m.line); return { pts: p.pts, cum: p.cum, len: p.len, stations: m.stations.map((s) => s.at) }; });
     // Two trains per section, running opposite ways from opposite ends.
     this.lines.forEach((l, i) => { this.trains.push({ line: i, s: 0, dir: 1, wait: 0, next: 0 }, { line: i, s: l.len, dir: -1, wait: DWELL / 2, next: l.stations.length - 1 }); });
+    // Bird flocks hop between roosts (parks, lakes); each has its own altitude, size and wing rhythm.
+    const roosts = data.sky?.roosts || [];
+    if (roosts.length > 1) for (let i = 0; i < 16; i++) {
+      const a = roosts[Math.floor(hash(i * 31) * roosts.length)], b = roosts[Math.floor(hash(i * 31 + 7) * roosts.length)];
+      this.flocks.push({ from: a, to: b, s: hash(i * 5) * Math.hypot(b[0] - a[0], b[1] - a[1]), len: Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, alt: 25 + hash(i * 3) * 35, n: 4 + Math.floor(hash(i * 11) * 9), seed: i, hop: 0 });
+    }
     this.stats.cars = this.cars.length; this.stats.trains = this.trains.length;
   }
 
@@ -117,7 +127,7 @@ export class MotionLayer {
     if (document.hidden) { this.last = now; return; }
     const v = this.view(); if (!v) return;
     const sc = this.scene();
-    const live = sc.animate && (sc.night > 0.02 || sc.monsoon > 0.02);
+    const live = sc.animate && (sc.night > 0.02 || sc.monsoon > 0.02 || (this.flocks.length > 0 && sc.night < 0.6));
     const key = `${v.x.toFixed(1)},${v.y.toFixed(1)},${v.w.toFixed(1)},${v.cw},${v.ch},${sc.night.toFixed(3)},${sc.monsoon.toFixed(3)},${sc.animate}`;
     // Static scenes redraw only when the view changes; animated ones at ≤30 fps.
     if (key === this.lastKey && (!live || now - this.lastDraw < FRAME_MS - 4)) return; // 4 ms slack: on 60 Hz, every 2nd frame
@@ -130,6 +140,11 @@ export class MotionLayer {
   };
 
   private step(dt: number) {
+    const roosts = this.data.sky?.roosts || [];
+    for (const f of this.flocks) {
+      f.s += BIRD_SPEED * dt;
+      if (f.s >= f.len && roosts.length) { f.hop++; f.from = f.to; f.to = roosts[Math.floor(hash(f.seed * 97 + f.hop * 13) * roosts.length)]; f.len = Math.hypot(f.to[0] - f.from[0], f.to[1] - f.from[1]) || 1; f.s = 0; }
+    }
     for (const t of this.trains) {
       const l = this.lines[t.line];
       if (t.wait > 0) { t.wait -= dt; continue; }
@@ -149,7 +164,7 @@ export class MotionLayer {
     const x0 = v.x, y0 = v.y, x1 = v.x + v.w, y1 = v.y + v.h, pad = 40 / z;
     const onScreen = (x: number, y: number) => x > x0 - pad && x < x1 + pad && y > y0 - pad && y < y1 + pad;
     const t = this.time;
-    const s = this.stats; s.carsDrawn = s.windowsLit = s.lamps = s.fireflies = s.clouds = s.blankRects = 0;
+    const s = this.stats; s.carsDrawn = s.windowsLit = s.lamps = s.fireflies = s.clouds = s.blankRects = s.birds = 0;
 
     // Never-rendered regions: textured open ground instead of flat beige, darkened at night.
     if (!this.pattern) this.pattern = ctx.createPattern(groundPattern(), 'repeat');
@@ -170,6 +185,39 @@ export class MotionLayer {
         const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
         g.addColorStop(0, `rgba(20,30,45,${0.24 * sc.monsoon})`); g.addColorStop(0.6, `rgba(20,30,45,${0.12 * sc.monsoon})`); g.addColorStop(1, 'rgba(20,30,45,0)');
         ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r); s.clouds++;
+      }
+    }
+    // Birds by day: a dark flapping "v" at altitude, and its soft shadow on the ground offset along the sun.
+    if (sc.animate && sc.night < 0.6 && z > 0.025 && this.data.sky) {
+      const day = 1 - sc.night / 0.6, spm = this.data.sky.shadowPerMetre[sc.sun] || this.data.sky.shadowPerMetre.A, lift = this.data.sky.liftPerMetre;
+      // Sizes are in screen pixels (exaggerated so a flock reads at city scale); every third flock is white egrets.
+      const w = Math.max(24 / z, 14), lw = Math.max(2.4 / z, 1.6), shadowA = (sc.sun === 'monsoon' ? 0.18 : 0.42) * day;
+      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      for (const f of this.flocks) {
+        const k = f.s / f.len, gx = f.from[0] + (f.to[0] - f.from[0]) * k, gy = f.from[1] + (f.to[1] - f.from[1]) * k;
+        const head = Math.atan2(f.to[1] - f.from[1], f.to[0] - f.from[0]), rise = Math.min(1, k * 6, (1 - k) * 6); // take off and land
+        const alt = f.alt * (0.25 + 0.75 * rise);
+        if (gx < x0 - 2000 || gx > x1 + 2000 || gy < y0 - 2000 || gy > y1 + 2000) continue;
+        const egret = f.seed % 3 === 0;
+        for (let b = 0; b < f.n; b++) {
+          // Dark flocks fly a loose V behind the leader; egrets drift in a scatter. Spacing scales with the drawn size.
+          const h = hash(f.seed * 100 + b), rank = Math.ceil(b / 2), side = b % 2 ? 1 : -1, c0 = Math.cos(head), s0 = Math.sin(head);
+          const back = egret ? w * (0.6 + h * 2.4) : rank * w * 0.75, lat = egret ? (hash(f.seed * 100 + b + 50) - 0.5) * w * 3.2 : side * rank * w * 0.85;
+          const bx = gx - c0 * back - s0 * lat + Math.sin(t * 0.9 + h * 20) * w * 0.12, by = gy - s0 * back + c0 * lat + Math.cos(t * 0.7 + h * 9) * w * 0.1;
+          const a = alt * (0.85 + 0.3 * h), px = bx + lift[0] * a, py = by + lift[1] * a, sx = px + spm[0] * a, sy = py + spm[1] * a;
+          // Gull-wing "M" seen from above, in local axes (forward = heading): span narrows as the wings beat.
+          const beat = Math.cos(t * (8 + h * 5) + h * 30), span = w * (0.42 + 0.14 * beat), c = Math.cos(head), sn = Math.sin(head);
+          const P = (ox: number, oy: number, fx: number, sy: number) => [ox + c * fx - sn * sy, oy + sn * fx + c * sy] as const;
+          const v = (ox: number, oy: number) => {
+            const tipL = P(ox, oy, -w * 0.1 * (1 + beat), -span), shL = P(ox, oy, w * 0.06, -span * 0.42), body = P(ox, oy, -w * 0.02, 0), shR = P(ox, oy, w * 0.06, span * 0.42), tipR = P(ox, oy, -w * 0.1 * (1 + beat), span);
+            ctx.beginPath(); ctx.moveTo(tipL[0], tipL[1]); ctx.lineTo(shL[0], shL[1]); ctx.lineTo(body[0], body[1]); ctx.lineTo(shR[0], shR[1]); ctx.lineTo(tipR[0], tipR[1]); ctx.stroke();
+          };
+          if (onScreen(sx, sy)) { ctx.strokeStyle = `rgba(28,26,18,${shadowA})`; ctx.lineWidth = lw * 1.3; v(sx, sy); }
+          if (onScreen(px, py)) {
+            if (egret) { ctx.strokeStyle = `rgba(40,40,40,${0.5 * day})`; ctx.lineWidth = lw * 1.7; v(px, py); }
+            ctx.strokeStyle = egret ? `rgba(250,250,245,${day})` : `rgba(30,28,32,${0.92 * day})`; ctx.lineWidth = lw; v(px, py); s.birds++; s.birdAt = [px, py];
+          }
+        }
       }
     }
     if (sc.night < 0.02 || !sc.animate) return;

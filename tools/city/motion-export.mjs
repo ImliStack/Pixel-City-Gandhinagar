@@ -110,6 +110,7 @@ for (const name of fs.readdirSync('outputs/city/scenes')) {
 }
 const lampSet = new Map();
 for (const p of lamps) lampSet.set(`${r1(p[0] / 4)},${r1(p[1] / 4)}`, p);
+const inImageBox = ([x, y]) => x >= 0 && y >= 0 && x <= meta.width && y <= meta.height;
 const inImage = ([x, y]) => x >= 0 && y >= 0 && x <= meta.width && y <= meta.height;
 const lampList = [...lampSet.values()].filter((p) => inImage(p) && rand() < 0.6);
 
@@ -153,10 +154,23 @@ const cells = [...grid].sort((a, b) => b[1] - a[1]).slice(0, 160), top = cells[0
 const glows = cells.map(([k, w]) => { const [cx, cy] = k.split(',').map(Number); const [x, y] = project((cx + 0.5) * cell, (cy + 0.5) * cell); return [r1(x), r1(y), +(w / top).toFixed(2)]; });
 
 const blank = layout.regions.filter((r) => !r.coverage).map((r) => r.rect);
+
+// Birds: image-space shift from a bird at altitude h to its ground shadow, per metre of h, for each
+// layer's sun (same light vectors as tools/capital/scene.mjs). Roosts are mapped parks, water and big
+// green sites the flocks wander between.
+const cityCfg = JSON.parse(fs.readFileSync('config/cities/gandhinagar-city.json'));
+const SUNS = { A: cityCfg.light, monsoon: cityCfg.light, winter: { east: -300, north: -330, up: 330 } };
+const shadowPerMetre = Object.fromEntries(Object.entries(SUNS).map(([k, L]) => {
+  const g = project(-L.east / L.up, -L.north / L.up, 0), o = project(0, 0, 1);
+  return [k, [+(g[0] - o[0]).toFixed(3), +(g[1] - o[1]).toFixed(3)]];
+}));
+const roostSet = data.features.filter((f) => (f.kind === 'park' || f.kind === 'water') && f.geometry.type === 'Polygon')
+  .map((f) => { const ring = f.geometry.coordinates[0]; let a = 0, cx = 0, cy = 0; for (let i = 1; i < ring.length; i++) { const k = ring[i - 1][0] * ring[i][1] - ring[i][0] * ring[i - 1][1]; a += k; cx += (ring[i - 1][0] + ring[i][0]) * k; cy += (ring[i - 1][1] + ring[i][1]) * k; } return Math.abs(a) > 6000 ? project(cx / (3 * a), cy / (3 * a)) : null; })
+  .filter((p) => p && inImageBox(p)).map(([x, y]) => [r1(x), r1(y)]);
 const result = {
   schema: 1, mapId, version: meta.version,
   note: 'Motion overlay data in image px. Roads and metro from OSM; lamp, window, firefly and glow positions are authored ambience derived from OSM geometry.',
-  blank, roads, metro,
+  blank, roads, metro, sky: { shadowPerMetre, liftPerMetre: (() => { const a = project(0, 0, 1), b = project(0, 0, 0); return [+(a[0] - b[0]).toFixed(3), +(a[1] - b[1]).toFixed(3)]; })(), roosts: roostSet },
   lamps: flat(lampList), windows: flat(windows.filter(inImage)), fireflies: flat(fireflies.filter(inImage)), glows,
 };
 fs.writeFileSync(`${out}/motion.json`, JSON.stringify(result));
