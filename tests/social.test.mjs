@@ -69,7 +69,7 @@ test('room tracks presence, visits and expiry without storing anything identifyi
   t += 11_000;
   assert.equal(room.beat({ id: 'bbbbbbbb' }).json.onlineCount, 1, 'silent tab expires');
   assert.equal(room.beat({ id: 'bbbbbbbb', bye: true }).json.onlineCount, 0);
-  assert.deepEqual(Object.keys(room.toJSON()).sort(), ['day', 'players', 'visits']);
+  assert.deepEqual(Object.keys(room.toJSON()).sort(), ['day', 'hunts', 'players', 'visits']);
 });
 
 test('room game: first guess per round, spoiler-free reveals, daily reset', () => {
@@ -135,4 +135,22 @@ test('Cloudflare worker serves tiles from R2 with cache headers and falls back t
   assert.equal((await worker.fetch(new Request('https://x.dev/maps/nope.webp'), env, ctx)).status, 404);
   assert.equal(await (await worker.fetch(new Request('https://x.dev/'), env, ctx)).text(), 'index');
   delete globalThis.caches;
+});
+
+test('room shares view positions (not persisted) and counts each hunt completion once per session', () => {
+  let t = 1_800_000_000_000;
+  const room = createRoom({ ttl: 10_000, now: () => t });
+  room.beat({ id: 'cursor01', pos: { x: 100.4, y: 200.6, z: 0.25 } });
+  room.beat({ id: 'cursor02', pos: { x: 1, y: 2, z: 999 } }); // invalid zoom ignored
+  let s = room.beat({ id: 'cursor03' }).json;
+  assert.deepEqual(s.cursors, [{ id: 'cursor01', x: 100, y: 201, z: 0.25 }]);
+  assert.equal(room.beat({ id: 'cursor01' }).json.cursors.length, 0, 'own cursor is not echoed');
+  room.beat({ id: 'cursor01', hunt: 'metro' }); room.beat({ id: 'cursor01', hunt: 'metro' }); room.beat({ id: 'cursor03', hunt: 'metro' });
+  room.beat({ id: 'cursor03', hunt: 'BAD HUNT!' });
+  s = room.snapshot('x');
+  assert.deepEqual(s.hunts, { metro: 2 });
+  assert.equal(JSON.stringify(room.toJSON()).includes('100'), false, 'positions are not persisted');
+  t += 11_000;
+  assert.equal(room.beat({ id: 'cursor03' }).json.cursors.length, 0, 'cursors expire with presence');
+  assert.deepEqual(createRoom({ state: JSON.parse(JSON.stringify(room.toJSON())) }).snapshot('x').hunts, { metro: 2 });
 });

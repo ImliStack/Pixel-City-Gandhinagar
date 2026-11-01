@@ -182,6 +182,25 @@ try {
   await second.screenshot({path: path.join(out, 'desktop-daily-game.png')});
   await second.close(); await page.keyboard.press('Escape');
 
+  // Live cursors: the second tab's view centre shows up on the first tab's map and minimap.
+  const watcher = await context.newPage(), vsC = meta.pois.find(p => p.id === 'vidhan-sabha').image;
+  await watcher.goto(`${base}/?map=${mapId}#v=2&m=${mapId}&l=A&cx=${vsC[0] + 300}&cy=${vsC[1] + 200}&z=0.2`); await watcher.waitForSelector('.minimap-view');
+  await page.evaluate(([x, y]) => { location.hash = `#v=2&m=gandhinagar-city&l=A&cx=${x}&cy=${y}&z=0.08`; }, vsC);
+  await page.waitForSelector('.cursor-mark', {timeout: 15000}).catch(() => null);
+  check('live cursor of another tab on map and minimap', (await page.locator('.cursor-mark').count()) >= 1 && (await page.locator('.minimap-cursor').count()) >= 1);
+  await watcher.close();
+
+  // Scavenger hunt: zooming in on a metro station stamps it.
+  await page.evaluate(() => localStorage.removeItem('pc-hunts'));
+  await page.keyboard.press('h'); await page.click('[data-testid="hunt-metro"]');
+  const st = meta.pois.find(p => p.category === 'metro' && p.name === 'Akshardham').image;
+  await page.evaluate(([x, y]) => { location.hash = `#v=2&m=gandhinagar-city&l=A&cx=${x}&cy=${y}&z=0.3`; }, st);
+  await page.waitForSelector('.hunt-toast', {timeout: 8000}).catch(() => null);
+  const huntText = await page.locator('.hunt-progress span').textContent().catch(() => '');
+  check('hunt stamps a place when zoomed in on it', (await page.locator('.hunt-places li.got').count()) === 1 && /1 of 12/.test(huntText), huntText);
+  await page.screenshot({path: path.join(out, 'desktop-hunt.png')});
+  await page.keyboard.press('Escape'); await page.keyboard.press('0'); await settle(page);
+
   // No social server (static hosting / offline): map still works, counter hidden, game plays solo.
   const solo = await context.newPage(); await solo.route('**/api/social/**', r => r.fulfill({status: 404, contentType: 'text/plain', body: ''}));
   await solo.goto(`${base}/?map=${mapId}`); await solo.waitForSelector('.minimap-view'); await settle(solo);

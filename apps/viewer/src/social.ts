@@ -16,27 +16,32 @@ export type PendingGuess = Guess & { day: string; round: number };
 // Heartbeat polling to /api/social/beat. Works with the Vite dev middleware and the Cloudflare
 // Worker alike; when neither answers (static hosting, offline) `offline` turns true and the
 // rest of the viewer is unaffected.
-export function useSocial() {
+// `getPos` reports where on the map image this tab is looking (shared as a live cursor), never where the person is.
+export function useSocial(getPos?: () => { x: number; y: number; z: number } | null) {
   const [id] = useState(sessionId);
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [offline, setOffline] = useState(false);
   const pending = useRef<PendingGuess[]>([]);
   const timer = useRef(0);
+  const huntQueue = useRef<string[]>([]);
+  const posRef = useRef(getPos);
+  posRef.current = getPos;
   const beatRef = useRef<() => void>(() => {});
 
   const beat = useCallback(async () => {
     window.clearTimeout(timer.current);
     let hello = false;
     try { hello = !sessionStorage.getItem('pc-hello'); } catch { /* storage blocked: count nothing */ }
-    const guess = pending.current[0];
+    const guess = pending.current[0], hunt = huntQueue.current[0], pos = posRef.current?.() || undefined;
     try {
-      const response = await fetch('/api/social/beat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, hello, guess }) });
+      const response = await fetch('/api/social/beat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id, hello, guess, hunt, pos }) });
       if (!response.ok || !(response.headers.get('content-type') || '').includes('json')) throw new Error('no social server');
       const value: Snapshot = await response.json();
       if (hello) try { sessionStorage.setItem('pc-hello', '1'); } catch { /* ignore */ }
       if (guess && value.game.mine[guess.round]) pending.current.shift();
+      if (hunt) huntQueue.current.shift();
       setSnap(value); setOffline(false);
-      timer.current = window.setTimeout(() => beatRef.current(), pending.current.length ? 300 : BEAT_MS);
+      timer.current = window.setTimeout(() => beatRef.current(), pending.current.length || huntQueue.current.length ? 300 : BEAT_MS);
     } catch {
       setOffline(true);
       timer.current = window.setTimeout(() => beatRef.current(), BEAT_MS * 4);
@@ -54,5 +59,6 @@ export function useSocial() {
   }, [beat, id]);
 
   const sendGuess = useCallback((guess: PendingGuess) => { pending.current.push(guess); beat(); }, [beat]);
-  return { id, snap, offline, sendGuess };
+  const reportHunt = useCallback((hunt: string) => { huntQueue.current.push(hunt); beat(); }, [beat]);
+  return { id, snap, offline, sendGuess, reportHunt };
 }

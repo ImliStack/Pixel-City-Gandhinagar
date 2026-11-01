@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
-import { Check, ChevronDown, Dices, Github, Star, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
+import { Check, ChevronDown, Dices, Flag, Github, Star, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
 import { describePoi, isStreet, kindLabel, nearestArea, pointForPoi, searchPois, type Metadata, type Poi } from './types';
 import { TileCrop } from './TileCrop';
 import { groundMeters } from '../shared/daily.mjs';
@@ -9,6 +9,8 @@ import { PixelIcon, PixelFace, CATEGORY_COLOR } from './icons';
 import { useSocial } from './social';
 import { MotionLayer, paintMinimapBlank, type MotionData } from './motion';
 import { DailyGame } from './DailyGame';
+import { Hunts } from './Hunts';
+import { Cursors } from './Cursors';
 
 const DEFAULT_MAP = 'gandhinagar-city';
 const GITHUB_URL = 'https://github.com/ImliStack/Pixel-City-Gandhinagar';
@@ -69,7 +71,14 @@ export default function App() {
   const [nightMix, setNightMix] = useState(1);
   const [motionData, setMotionData] = useState<MotionData | null>(null);
   const [gameOpen, setGameOpen] = useState(false);
-  const social = useSocial();
+  const [huntsOpen, setHuntsOpen] = useState(false);
+  // Shared as a live cursor: the view centre in image pixels and the image zoom (never the visitor's location).
+  const social = useSocial(() => {
+    const v = viewerRef.current;
+    if (!v?.world.getItemCount()) return null;
+    const c = v.viewport.viewportToImageCoordinates(v.viewport.getCenter(true));
+    return { x: c.x, y: c.y, z: v.viewport.viewportToImageZoom(v.viewport.getZoom(true)) };
+  });
   const deckRef = useRef<Poi[]>([]);
   const [maps, setMaps] = useState<{ id: string; title?: string; subtitle?: string }[]>([]);
   useEffect(() => { fetch('/maps/index.json').then((r) => r.ok ? r.json() : []).then(setMaps).catch(() => setMaps([])); }, []);
@@ -362,10 +371,11 @@ export default function App() {
       else if (event.key === '0' || event.key === 'Home') { event.preventDefault(); reset(); }
       else if (event.key.toLowerCase() === 'g') setDebug((value) => !value);
       else if (event.key.toLowerCase() === 'r') randomLandmark();
-      else if (event.key.toLowerCase() === 'd') { setGameOpen((value) => !value); setSelectedId(null); }
+      else if (event.key.toLowerCase() === 'd') { setGameOpen((value) => !value); setHuntsOpen(false); setSelectedId(null); }
+      else if (event.key.toLowerCase() === 'h') { setHuntsOpen((value) => !value); setGameOpen(false); }
       else if (event.key === '?') setInfoOpen((value) => !value);
       else if (event.key === '/') { event.preventDefault(); searchRef.current?.focus(); }
-      else if (event.key === 'Escape') { setSelectedId(null); setLayersOpen(false); setShareFallback(''); setGameOpen(false); }
+      else if (event.key === 'Escape') { setSelectedId(null); setLayersOpen(false); setShareFallback(''); setGameOpen(false); setHuntsOpen(false); }
       else if (event.key.startsWith('Arrow')) {
         const viewer = viewerRef.current;
         if (!viewer?.world.getItemCount()) return;
@@ -501,7 +511,11 @@ export default function App() {
       <span className="counts"><strong data-testid="online">{social.snap.onlineCount}</strong> here now · <span data-testid="visits">{social.snap.visits.toLocaleString('en-IN')}</span> visits</span>
     </div>}
 
-    {!gameOpen && filters.length > 0 && metadata && <section className={`place-list ${listOpen ? 'open' : ''}`} aria-label="Filtered places">
+    {!social.offline && social.snap && <Cursors cursors={social.snap.cursors || []} viewer={ready ? viewer : null} onJump={(c) => { const v = viewerRef.current; if (!v) return; v.viewport.panTo(v.viewport.imageToViewportCoordinates(c.x, c.y)); v.viewport.zoomTo(v.viewport.imageToViewportZoom(Math.max(c.z, 0.02))); v.viewport.applyConstraints(); }} />}
+
+    {huntsOpen && metadata && <Hunts metadata={metadata} viewer={ready ? viewer : null} counts={social.snap?.hunts || {}} reportHunt={social.reportHunt} onClose={() => setHuntsOpen(false)} onFly={choosePoi} />}
+
+    {!gameOpen && !huntsOpen && filters.length > 0 && metadata && <section className={`place-list ${listOpen ? 'open' : ''}`} aria-label="Filtered places">
       <button className="place-list-head" onClick={() => setListOpen(!listOpen)} aria-expanded={listOpen}>
         <span className="icons">{filters.slice(0, 3).map((id) => <PixelIcon key={id} category={id} size={13} />)}</span>
         <span className="title">{filters.length === 1 ? metadata.categories?.find((c) => c.id === filters[0])?.label : `${filters.length} categories`}</span>
@@ -538,7 +552,8 @@ export default function App() {
       <button onClick={() => zoom(1 / 1.6)} aria-label="Zoom out" title="Zoom out (−)"><Minus size={19} /></button>
       <button onClick={reset} aria-label="Reset map" title="Reset view (0)"><LocateFixed size={18} /></button>
       <button onClick={randomLandmark} aria-label="Random landmark" title="Random landmark (R)" disabled={!ready}><Dices size={18} /></button>
-      <button onClick={() => { setGameOpen(!gameOpen); setSelectedId(null); }} aria-label="Daily landmark game" aria-pressed={gameOpen} className={gameOpen ? 'active' : ''} title="Find the landmark — daily game (D)" disabled={!ready}><Target size={18} /></button>
+      <button onClick={() => { setHuntsOpen(!huntsOpen); setGameOpen(false); }} aria-label="Scavenger hunts" aria-pressed={huntsOpen} className={huntsOpen ? 'active' : ''} title="Scavenger hunts (H)" disabled={!ready}><Flag size={18} /></button>
+      <button onClick={() => { setGameOpen(!gameOpen); setHuntsOpen(false); setSelectedId(null); }} aria-label="Daily landmark game" aria-pressed={gameOpen} className={gameOpen ? 'active' : ''} title="Find the landmark — daily game (D)" disabled={!ready}><Target size={18} /></button>
       <button onClick={share} aria-label="Copy link to this view" title="Share view" disabled={!ready}>{copied ? <Check size={18} /> : <Share2 size={18} />}</button>
       <button onClick={() => setLayersOpen(!layersOpen)} aria-label="Map layers" aria-expanded={layersOpen} title="Layers"><Layers size={18} /></button>
       <button onClick={() => setInfoOpen(true)} aria-label="About this map" title="About (?)"><Info size={18} /></button>
@@ -559,6 +574,7 @@ export default function App() {
         <img src={minimapSrc} alt="" draggable={false} />
         <canvas ref={miniBlankRef} className="minimap-blank" width={MINIMAP_WIDTH * 2} height={miniHeight * 2} aria-hidden="true" />
         {miniRect && <span className="minimap-view" style={{ left: miniRect.x, top: miniRect.y, width: miniRect.w, height: miniRect.h }} />}
+        {!social.offline && social.snap?.cursors?.map((c) => <span key={c.id} className="minimap-cursor" style={{ left: c.x * miniScale, top: c.y * miniScale }} title="Another visitor" />)}
       </div>
       <span className="minimap-zoom">{imageZoom ? `${Math.round(imageZoom * 100)}%` : '—'}</span>
     </div>}
@@ -587,7 +603,7 @@ export default function App() {
       <p><strong>Art status.</strong> {metadata?.artNote || 'Deterministic render only.'}</p>
       <p><strong>Coverage.</strong> {metadata?.coverage?.note || 'The dashed line marks the working extent.'}</p>
       {maps.length > 1 && <p><strong>Maps on this machine.</strong> {maps.map((m, i) => <span key={m.id}>{i ? ' · ' : ''}{m.id === mapId ? <b>{m.subtitle || m.id}</b> : <a href={`/?map=${encodeURIComponent(m.id)}`}>{m.subtitle || m.id}</a>}</span>)} · <a href="/?map=jaipur">Jaipur (historical)</a></p>}
-      <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · <kbd>R</kbd> random landmark · <kbd>D</kbd> daily game · arrows pan · <kbd>G</kbd> debug</p>
+      <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · <kbd>R</kbd> random landmark · <kbd>D</kbd> daily game · <kbd>H</kbd> hunts · arrows pan · <kbd>G</kbd> debug</p>
       <p className="about-links"><a href={GITHUB_URL} target="_blank" rel="noopener"><Github size={15} />Source on GitHub. A ⭐ helps</a><a href={IMLISTACK_URL} target="_blank" rel="noopener"><span>More from <b>ImliStack</b> →</span></a></p>
       <p className="fine">{metadata?.attribution}</p>
     </section></div>}

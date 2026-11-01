@@ -160,6 +160,8 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 
 **Play together**
 - **Who's here now**: a stack of deterministic 12×12 pixel faces (one per open tab, generated from a random anonymous id), with a live count and total visits. No IPs, cookies or accounts are used.
+- **Live cursors**: see where other visitors are looking right now. Their pixel faces glide across the map and minimap, and clicking one takes you to their view. Only the map position is shared.
+- **Scavenger hunts** (`H`): 5 themed hunts over real places (every Metro Line 2 station, big landmarks, a temple trail, the city's vans and gardens, sights). Zoom in on a place to stamp it. The sector name is your hint, and everyone sees how many visitors finished each hunt.
 - **Daily "Find the landmark"** (`D`): everyone gets the same 3 places each day (IST). The clue is a close-up crop of the real tiles. Pan the crosshair onto the spot and guess, and you are scored by ground distance. After you guess, you see other visitors' guesses as their faces, plus today's board and a copyable 🟩🟨🟧🟥 result. Without the social server the counter hides and the game plays solo. See [docs/ENGAGEMENT-IDEAS.md](docs/ENGAGEMENT-IDEAS.md) for the ranked ideas behind it.
 
 ## ✦ Quick start
@@ -206,6 +208,7 @@ The exported map in `outputs/maps/gandhinagar-city` opens straight away. To rebu
 | Arrow keys | Pan |
 | `R` | Fly to a random landmark |
 | `D` | Daily landmark game |
+| `H` | Scavenger hunts |
 | `G` | Geography debug overlay |
 | `?` | About this map |
 | `Esc` | Close panels / clear selection |
@@ -271,7 +274,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 43/43 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 45/45 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (49 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
@@ -287,7 +290,15 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 - [x] Pixel-icon place filters, transport filters, close-zoom labels, typo-tolerant search
 - [x] Visitor presence faces and the daily Find-the-landmark game
 - [x] Night motion: cross-fade, live India time, traffic, metro, windows, lamps, fireflies, monsoon clouds
-- [ ] Live cursors of other visitors, scavenger hunts (see docs/ENGAGEMENT-IDEAS.md)
+- [x] Live cursors of other visitors and scavenger hunts
+- [ ] **Birds with moving shadows**: small pixel flocks over parks and the river, with shadows cast along the sun direction (motion overlay; feasible)
+- [ ] **Lake and river shimmer**: ripples and sun glints clipped to the OSM water shapes, with lamp reflections at night (motion overlay; feasible)
+- [ ] **Wind in the trees**: needs a tree-mask tile layer from the renderer, then a gentle sway shader; feasible but needs a re-render
+- [ ] Planes on the Ahmedabad airport approach and trains on the railway lines, with shadows
+- [ ] Festival modes: kites over every roof for Uttarayan (14 January), lamps for Diwali, garba glow for Navratri
+- [ ] Auto-rickshaws and buses in the traffic, and the odd cow crossing a sector road
+- [ ] Live weather: a Worker reads Gandhinagar's real weather and picks the matching layer (rain → monsoon)
+- [ ] Photo mode: frame a view, pick a layer and save a postcard with attribution
 - [ ] GIFT City and the riverfront south of the current extent
 - [ ] Terrain (open DEM) instead of flat ground
 - [ ] Hand-modelled Mahatma Mandir, Sachivalaya blocks and Infocity
