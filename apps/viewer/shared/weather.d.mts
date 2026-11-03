@@ -1,0 +1,10 @@
+export type Weather = { code: number; isDay: boolean; cloud: number; temp: number; rain: number; wind: number; label: string; icon: string; layer: 'A' | 'night' | 'monsoon' | 'winter'; observed: string | null; fetchedAt: string; source: string };
+export const GANDHINAGAR: { lat: number; lon: number };
+export const CACHE_SECONDS: number;
+export const SOURCE: string;
+export function weatherUrl(at?: { lat: number; lon: number }): string;
+export function describe(code: number): { label: string; icon: string };
+export function isWet(code: number): boolean;
+export function pickLayer(w: { code: number; isDay: boolean; cloud: number }, month: number): Weather['layer'];
+export function fromOpenMeteo(json: unknown, now?: number): Weather;
+export function fetchWeather(fetchImpl?: typeof fetch, now?: number): Promise<Weather>;

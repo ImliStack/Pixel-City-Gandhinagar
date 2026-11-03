@@ -1,14 +1,23 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { createRoom, handle } from './shared/social-core.mjs';
+import { CACHE_SECONDS, fetchWeather } from './shared/weather.mjs';
 
 const deployBuild = !!(globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env.DEPLOY_BUILD;
 
 // Local stand-in for the Cloudflare presence Worker: same protocol, in-memory counts.
 function socialDevServer(): Plugin {
   const room = createRoom();
+  // Same 10-minute cache as the Worker; the dev server, not the browser, calls Open-Meteo.
+  let cached: { at: number; body: string } | null = null;
+  const weather = async (res: any) => {
+    const send = (status: number, body: string) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.end(body); };
+    if (cached && Date.now() - cached.at < CACHE_SECONDS * 1000) return send(200, cached.body);
+    try { cached = { at: Date.now(), body: JSON.stringify(await fetchWeather()) }; send(200, cached.body); } catch { send(503, JSON.stringify({ error: 'weather unavailable' })); }
+  };
   const middleware = (req: any, res: any, next: () => void) => {
     const url = new URL(req.url || '/', 'http://local');
+    if (url.pathname === '/api/weather') { weather(res); return; }
     if (!url.pathname.startsWith('/api/social/')) return next();
     const readBody = () => new Promise<string>((resolve, reject) => { let text = ''; req.on('data', (c: { toString(): string }) => { text += c.toString(); if (text.length > 4096) { req.destroy(); reject(new Error('too large')); } }); req.on('end', () => resolve(text)); req.on('error', reject); });
     const send = (status: number, json: unknown) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.setHeader('Cache-Control', 'no-store'); res.end(JSON.stringify(json)); };

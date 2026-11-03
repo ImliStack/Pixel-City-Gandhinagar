@@ -247,6 +247,15 @@ try {
   const card = await dl.path().then(f => fs.statSync(f).size).catch(() => 0);
   check('photo postcard saves a JPEG', /\.jpg$/.test(dl.suggestedFilename()) && card > 50000, `${dl.suggestedFilename()} ${Math.round(card / 1024)} KB`); await apg.close();
 
+  // Live weather (mocked rainy afternoon): the chip shows Gandhinagar's sky and can pick the monsoon layer.
+  const wet = await context.newPage();
+  await wet.route('**/api/weather', r => r.fulfill({status: 200, contentType: 'application/json', body: JSON.stringify({code: 63, isDay: true, cloud: 96, temp: 29, rain: 2.1, wind: 18, label: 'Rain', icon: '🌧️', layer: 'monsoon', observed: '2026-07-14T15:00', fetchedAt: new Date().toISOString(), source: 'Open-Meteo.com (CC BY 4.0)'})}));
+  await wet.goto(`${base}/?map=${mapId}#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.03`); await wet.waitForSelector('[data-testid="weather"]');
+  await wet.click('[data-testid="weather"]'); await wet.waitForTimeout(1500);
+  const wl = await wet.evaluate(() => new URLSearchParams(location.hash.slice(1)).get('l'));
+  check('live weather: rain switches to the monsoon layer', wl === 'monsoon' && (await wet.locator('.weather-chip.live').count()) === 1, `layer ${wl}`);
+  await wet.close();
+
   // prefers-reduced-motion: no animation by default, layer switches are instant.
   const calm = await browser.newContext({viewport: {width: 1200, height: 800}, reducedMotion: 'reduce'});
   await calm.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });

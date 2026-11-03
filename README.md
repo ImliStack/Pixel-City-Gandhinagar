@@ -162,6 +162,7 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 - **Metro Line 2**: lit trains run both viaduct sections (Sector-10A → Mahatma Mandir, Dholakuva → Raysan), stopping at the 12 real stations.
 - **Living windows** switch on and off on their own rhythms, **street lamps** pulse gently (and a few flicker), **busy blocks** glow, and **fireflies** drift in parks.
 - **Monsoon cloud shadows** slowly cross the monsoon layer.
+- **Live weather**: a chip shows Gandhinagar's current sky and temperature. Turn on *Live weather* (tap the chip, or use the layer menu) and the map follows it: rain switches to the monsoon layer, dark to night, December–February to winter morning, otherwise summer day. The data is [Open-Meteo](https://open-meteo.com/) (CC BY 4.0). The server fetches it at most once every 10 minutes and caches it, so your browser still talks only to this site.
 - **Water that moves**: sun glints and slow ripples on every mapped lake, pond and the Sabarmati, turning to moonlit specks and a warm reflected glow at night.
 - **Trains and planes**: a blue-and-cream train shuttles along the real main railway line, lit at night. Airliners cross the city with their shadows far below on the ground. The flight paths are illustrative, not real routes, and run about 3× real speed so they appear often.
 - **Daytime streets**: cars, yellow-green auto-rickshaws and red buses on the real roads, and the odd cow ambling across a residential street.
@@ -291,7 +292,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 52/52 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 53/53 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (49 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
@@ -314,7 +315,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 - [x] Trains on the main railway line, and planes with shadows (illustrative flight paths)
 - [x] Festival modes: Uttarayan kites, Diwali lamps and fireworks, Navratri garba circles
 - [x] Daytime traffic with auto-rickshaws and buses, and the odd cow
-- [ ] Live weather: a Worker reads Gandhinagar's real weather and picks the matching layer (rain → monsoon)
+- [x] Live weather picks the matching layer (Open-Meteo, cached on the server)
 - [x] Photo postcards
 - [ ] GIFT City and the riverfront south of the current extent
 - [ ] Terrain (open DEM) instead of flat ground

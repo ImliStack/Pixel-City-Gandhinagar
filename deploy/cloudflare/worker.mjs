@@ -1,10 +1,12 @@
 // Cloudflare deployment: one Worker serves
 //   /api/social/*        → Durable Object "city" (presence, visits, daily-game board)
+//   /api/weather         → Gandhinagar's current weather (Open-Meteo), cached 10 min at the edge
 //   /maps/*, /map/*      → R2 bucket TILES (Deep Zoom tiles, metadata.json, motion.json, minimap)
 //   everything else      → static viewer build (ASSETS, from npm run build:deploy)
 // The DO keeps live presence in memory and persists visits + today's board in DO storage, and
 // mirrors the visit total to KV (optional VISITS binding) for cheap reads by other tools.
 import { createRoom, handle } from '../../apps/viewer/shared/social-core.mjs';
+import { CACHE_SECONDS, fetchWeather } from '../../apps/viewer/shared/weather.mjs';
 
 export class CityRoom {
   constructor(ctx, env) {
@@ -43,9 +45,22 @@ async function tile(request, env, ctx, key) {
   return response;
 }
 
+// One upstream call per data centre per 10 minutes, however many visitors ask.
+async function weather(request, ctx) {
+  const key = new Request(new URL('/api/weather', request.url).toString()), cache = caches.default, hit = await cache.match(key);
+  if (hit) return hit;
+  try {
+    const body = await fetchWeather(fetch);
+    const response = new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json', 'cache-control': `public, max-age=${CACHE_SECONDS}` } });
+    ctx.waitUntil(cache.put(key, response.clone()));
+    return response;
+  } catch { return json(503, { error: 'weather unavailable' }); }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url), path = decodeURIComponent(url.pathname);
+    if (path === '/api/weather') return weather(request, ctx);
     if (path.startsWith('/api/social/')) return env.CITY_ROOM.get(env.CITY_ROOM.idFromName('gandhinagar-city')).fetch(request);
     if ((path.startsWith('/maps/') || path.startsWith('/map/')) && (request.method === 'GET' || request.method === 'HEAD')) return tile(request, env, ctx, path.slice(1));
     return env.ASSETS ? env.ASSETS.fetch(request) : json(404, { error: 'not found' });

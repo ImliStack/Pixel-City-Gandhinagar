@@ -12,6 +12,7 @@ import { DailyGame } from './DailyGame';
 import { Hunts } from './Hunts';
 import { Postcard } from './Postcard';
 import { festivalFor, type Festival } from './ambient';
+import type { Weather } from '../shared/weather.mjs';
 import { Cursors } from './Cursors';
 
 const DEFAULT_MAP = 'gandhinagar-city';
@@ -72,6 +73,9 @@ export default function App() {
   motionOnRef.current = motionOn;
   // Live clock: day, dusk and night follow the current time in India.
   const [liveClock, setLiveClock] = useState(() => stored('pc-live') === '1');
+  // Live weather: Gandhinagar's current sky (via this site's /api/weather) can pick the layer.
+  const [weather, setWeather] = useState<Weather | null>(null);
+  const [liveWeather, setLiveWeather] = useState(() => stored('pc-live-weather') === '1');
   const [nightMix, setNightMix] = useState(1);
   const [motionData, setMotionData] = useState<MotionData | null>(null);
   const [gameOpen, setGameOpen] = useState(false);
@@ -290,6 +294,19 @@ export default function App() {
     const timer = window.setInterval(apply, 30000);
     return () => window.clearInterval(timer);
   }, [liveClock]);
+
+  useEffect(() => {
+    let stop = false;
+    const load = () => fetch('/api/weather').then((r) => (r.ok && (r.headers.get('content-type') || '').includes('json') ? r.json() : null)).then((w: Weather | null) => { if (!stop) setWeather(w?.label ? w : null); }).catch(() => { if (!stop) setWeather(null); });
+    load();
+    const timer = window.setInterval(load, 10 * 60 * 1000);
+    return () => { stop = true; window.clearInterval(timer); };
+  }, []);
+  useEffect(() => {
+    store('pc-live-weather', liveWeather ? '1' : '0');
+    if (liveWeather && weather && layers[weather.layer]) { setLiveClock(false); setNightMix(1); setLayer(weather.layer); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveWeather, weather, layers]);
 
   // Motion overlay data is optional: without motion.json the map simply has no animation.
   useEffect(() => {
@@ -525,10 +542,16 @@ export default function App() {
       </ul>}
     </div>
 
+    <div className="status-row">
     {!social.offline && social.snap && <div className="presence" aria-label={`${social.snap.onlineCount} on the map now, ${social.snap.visits} visits`}>
       <span className="faces">{social.snap.online.slice(0, 5).map((id) => <PixelFace key={id} id={id} size={22} title={id === social.id ? 'You' : 'Another visitor'} />)}{social.snap.onlineCount > 5 && <b>+{social.snap.onlineCount - 5}</b>}</span>
       <span className="counts"><strong data-testid="online">{social.snap.onlineCount}</strong> here now · <span data-testid="visits">{social.snap.visits.toLocaleString('en-IN')}</span> visits</span>
     </div>}
+    {weather && <button className={`weather-chip ${liveWeather ? 'live' : ''}`} data-testid="weather" onClick={() => setLiveWeather(!liveWeather)} aria-pressed={liveWeather}
+      title={`Gandhinagar now: ${weather.label}, ${weather.temp}°C, wind ${weather.wind} km/h (Open-Meteo). ${liveWeather ? 'The weather is choosing the map layer. Click to stop.' : 'Click to let the weather choose the map layer.'}`}>
+      <span className="icon" aria-hidden="true">{weather.icon}</span><b>{weather.temp}°</b><span className="label">{weather.label}</span>{liveWeather && <span className="live-badge">LIVE</span>}
+    </button>}
+    </div>
 
     {!social.offline && social.snap && <Cursors cursors={social.snap.cursors || []} viewer={ready ? viewer : null} onJump={(c) => { const v = viewerRef.current; if (!v) return; v.viewport.panTo(v.viewport.imageToViewportCoordinates(c.x, c.y)); v.viewport.zoomTo(v.viewport.imageToViewportZoom(Math.max(c.z, 0.02))); v.viewport.applyConstraints(); }} />}
 
@@ -583,11 +606,12 @@ export default function App() {
       <button onClick={() => setInfoOpen(true)} aria-label="About this map" title="About (?)"><Info size={18} /></button>
       {layersOpen && <div className="layer-menu" role="menu">
         <span className="menu-heading">Time &amp; climate</span>
-        {SCENE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
+        {SCENE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLiveWeather(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
         <span className="menu-heading">Style</span>
-        {STYLE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
+        {STYLE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLiveWeather(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
         <span className="menu-heading">Motion</span>
-        <button role="menuitemcheckbox" aria-checked={liveClock} className={liveClock ? 'active' : ''} disabled={!layers.night} onClick={() => setLiveClock(!liveClock)} title="Day, dusk and night follow the current time in India">Live India time</button>
+        <button role="menuitemcheckbox" aria-checked={liveWeather} className={liveWeather ? 'active' : ''} disabled={!weather} onClick={() => setLiveWeather(!liveWeather)} title={weather ? `Gandhinagar now: ${weather.label}, ${weather.temp}°C. Rain shows monsoon, dark shows night` : 'Weather is unavailable right now'}>Live weather</button>
+        <button role="menuitemcheckbox" aria-checked={liveClock} className={liveClock ? 'active' : ''} disabled={!layers.night} onClick={() => { setLiveClock(!liveClock); setLiveWeather(false); }} title="Day, dusk and night follow the current time in India">Live India time</button>
         <span className="menu-heading">Festival</span>
         <div className="festival-row">{(['auto', 'uttarayan', 'diwali', 'navratri', 'off'] as const).map((f) => <button key={f} role="menuitemradio" aria-checked={festivalPick === f} className={festivalPick === f ? 'active' : ''} onClick={() => { setFestivalPick(f); setFestivalNoteHidden(false); }} title={f === 'auto' ? 'Follows the India calendar' : undefined}>{f === 'auto' ? 'By date' : f === 'off' ? 'Off' : FESTIVAL_LABEL[f]}</button>)}</div>
         <button role="menuitemcheckbox" aria-checked={motionOn} className={motionOn ? 'active' : ''} disabled={!motionData} onClick={() => setMotionOn(!motionOn)} title={reducedMotion ? 'Your system asks for reduced motion' : 'Birds by day; traffic, metro, windows, lamps and fireflies at night; monsoon clouds'}>Night &amp; weather motion</button>
@@ -631,7 +655,7 @@ export default function App() {
       {maps.length > 1 && <p><strong>Maps on this machine.</strong> {maps.map((m, i) => <span key={m.id}>{i ? ' · ' : ''}{m.id === mapId ? <b>{m.subtitle || m.id}</b> : <a href={`/?map=${encodeURIComponent(m.id)}`}>{m.subtitle || m.id}</a>}</span>)} · <a href="/?map=jaipur">Jaipur (historical)</a></p>}
       <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · <kbd>R</kbd> random landmark · <kbd>D</kbd> daily game · <kbd>H</kbd> hunts · <kbd>P</kbd> postcard · arrows pan · <kbd>G</kbd> debug</p>
       <p className="about-links"><a href={GITHUB_URL} target="_blank" rel="noopener"><Github size={15} />Source on GitHub. A ⭐ helps</a><a href={IMLISTACK_URL} target="_blank" rel="noopener"><span>More from <b>ImliStack</b> →</span></a></p>
-      <p className="fine">{metadata?.attribution}</p>
+      <p className="fine">{metadata?.attribution} · Weather: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0)</p>
     </section></div>}
   </main>;
 }
