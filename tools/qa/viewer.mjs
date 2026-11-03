@@ -16,7 +16,7 @@ const settle = page => page.waitForTimeout(1600);
 let browser;
 try {
   browser = await chromium.launch({headless: true, executablePath: process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
-  const context = await browser.newContext({viewport: {width: 1440, height: 900}});
+  const context = await browser.newContext({viewport: {width: 1440, height: 900}, acceptDownloads: true});
   await context.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });
   const page = await context.newPage();
   const errors = []; page.on('pageerror', e => errors.push(e.message));
@@ -227,6 +227,25 @@ try {
   const vs0 = meta.pois.find(p => p.id === 'vidhan-sabha').image;
   check('fresh visit zooms in to the capital complex', Number(iz.z) > z0 * 2.5 && Math.abs(iz.cx - vs0[0]) < 50 && Math.abs(iz.cy - vs0[1]) < 50, `z ${z0} → ${iz.z}`);
   await intro.close();
+
+  // Ambient life: water shimmer, trains, planes, daytime traffic with autos/buses, festival modes, postcards.
+  const amb = async (q, hash, ms = 3500) => { const apg = await context.newPage(); await apg.goto(`${base}/?map=${mapId}${q}${hash}`); await apg.waitForSelector('.minimap-view'); await apg.waitForTimeout(ms); const ast = await apg.evaluate(() => ({...window.__motion.stats, ...window.__motion.ambient.stats})); return [apg, ast]; };
+  const mo = JSON.parse(fs.readFileSync(`outputs/maps/${mapId}/motion.json`));
+  let [apg, ast] = await amb('', `#v=2&m=${mapId}&l=A&cx=${mo.water.points[0]}&cy=${mo.water.points[1]}&z=0.25`);
+  check('lake and river shimmer drawn', ast.water > 0, `${ast.water} water points`); await apg.close();
+  [apg, ast] = await amb('', `#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.02`);
+  check('trains and planes on the move', ast.trains >= 1 && ast.planes >= 1, `${ast.trains} trains, ${ast.planes} planes`); await apg.close();
+  const vsA = meta.pois.find(p => p.id === 'vidhan-sabha').image;
+  [apg, ast] = await amb('', `#v=2&m=${mapId}&l=A&cx=${vsA[0]}&cy=${vsA[1]}&z=0.12`);
+  check('daytime traffic with autos and buses', ast.dayVehicles > 50, `${ast.dayVehicles} vehicles`); await apg.close();
+  [apg, ast] = await amb('&festival=uttarayan', `#v=2&m=${mapId}&l=A&cx=${vsA[0]}&cy=${vsA[1]}&z=0.12`);
+  check('Uttarayan kites over the rooftops', ast.kites > 10 && ast.festival === 'uttarayan' && (await apg.locator('.festival-note').count()) === 1, `${ast.kites} kites`); await apg.close();
+  [apg, ast] = await amb('&festival=diwali', `#v=2&m=${mapId}&l=night&cx=${vsA[0]}&cy=${vsA[1]}&z=0.1`);
+  check('Diwali mode at night', ast.festival === 'diwali' && ast.fps >= 20, `${ast.fps} fps, ${ast.drawMs} ms`); await apg.close();
+  [apg] = await amb('', `#v=2&m=${mapId}&l=A&cx=${vsA[0]}&cy=${vsA[1]}&z=0.4`, 2500);
+  await apg.keyboard.press('p'); const [dl] = await Promise.all([apg.waitForEvent('download'), apg.click('[data-testid="postcard-save"]')]);
+  const card = await dl.path().then(f => fs.statSync(f).size).catch(() => 0);
+  check('photo postcard saves a JPEG', /\.jpg$/.test(dl.suggestedFilename()) && card > 50000, `${dl.suggestedFilename()} ${Math.round(card / 1024)} KB`); await apg.close();
 
   // prefers-reduced-motion: no animation by default, layer switches are instant.
   const calm = await browser.newContext({viewport: {width: 1200, height: 800}, reducedMotion: 'reduce'});

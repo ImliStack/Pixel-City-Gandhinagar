@@ -9,10 +9,13 @@ export type MotionData = {
   roads: { w: number; oneway: number; p: number[] }[];
   metro: { line: number[]; stations: { name: string; at: number }[] }[];
   lamps: number[]; windows: number[]; fireflies: number[]; glows: [number, number, number][];
+  water?: { points: number[]; rings: number[][] }; rail?: number[][];
   sky?: { shadowPerMetre: Record<string, [number, number]>; liftPerMetre: [number, number]; roosts: [number, number][] };
 };
+import { Ambient, type Festival } from './ambient';
+
 export type View = { x: number; y: number; w: number; h: number; cw: number; ch: number };
-export type Scene = { night: number; monsoon: number; animate: boolean; sun: string };
+export type Scene = { night: number; monsoon: number; animate: boolean; sun: string; festival: Festival };
 export type MotionStats = { fps: number; cars: number; carsDrawn: number; trains: number; windowsLit: number; lamps: number; fireflies: number; clouds: number; blankRects: number; frames: number; drawMs: number; birds: number; birdAt?: [number, number] };
 
 const BIRD_SPEED = 70; // image px/s ≈ 14 m/s
@@ -83,6 +86,8 @@ export class MotionLayer {
   private lines: Line[] = [];
   private trains: Train[] = [];
   private flocks: Flock[] = [];
+  private roadWeights: number[] = [];
+  ambient: Ambient;
   private pattern: CanvasPattern | null = null;
   private warm = glowSprite('255,170,90');
   private lampGlow = glowSprite('255,190,110');
@@ -94,13 +99,14 @@ export class MotionLayer {
   private fpsWindow: number[] = [];
   stats: MotionStats = { fps: 0, cars: 0, carsDrawn: 0, trains: 0, windowsLit: 0, lamps: 0, fireflies: 0, clouds: 0, blankRects: 0, frames: 0, drawMs: 0, birds: 0 };
 
-  constructor(private canvas: HTMLCanvasElement, private data: MotionData, private view: () => View | null, private scene: () => Scene) {
+  constructor(private canvas: HTMLCanvasElement, private data: MotionData, private view: () => View | null, private scene: () => Scene, size = { width: 58368, height: 47104 }) {
     this.ctx = canvas.getContext('2d')!;
-    this.roads = data.roads.map((r) => ({ ...prepare(r.p), oneway: !!r.oneway })).filter((r) => r.len > 20);
+    const kept = data.roads.map((r) => ({ ...prepare(r.p), oneway: !!r.oneway, w: r.w })).filter((r) => r.len > 20);
+    this.roads = kept; this.roadWeights = kept.map((r) => r.w);
     // Cars by road length × class weight (one per CAR_SPACING/w image px). Positions are analytic in
     // time, so only cars on visible roads cost anything; at city zoom a stride caps what is drawn.
     for (let i = 0; i < this.roads.length && this.cars.length < MAX_CARS; i++) {
-      const n = Math.floor((this.roads[i].len * data.roads[i].w) / CAR_SPACING + hash(i * 7));
+      const n = Math.floor((this.roads[i].len * this.roadWeights[i]) / CAR_SPACING + hash(i * 7));
       for (let k = 0; k < n && this.cars.length < MAX_CARS; k++) {
         const seed = this.cars.length * 13 + 5;
         this.cars.push({ road: i, s: hash(seed) * this.roads[i].len, dir: this.roads[i].oneway || hash(seed + 1) < 0.5 ? 1 : -1, v: CAR_SPEED[0] + hash(seed + 2) * (CAR_SPEED[1] - CAR_SPEED[0]) });
@@ -115,6 +121,7 @@ export class MotionLayer {
       const a = roosts[Math.floor(hash(i * 31) * roosts.length)], b = roosts[Math.floor(hash(i * 31 + 7) * roosts.length)];
       this.flocks.push({ from: a, to: b, s: hash(i * 5) * Math.hypot(b[0] - a[0], b[1] - a[1]), len: Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, alt: 25 + hash(i * 3) * 35, n: 4 + Math.floor(hash(i * 11) * 9), seed: i, hop: 0 });
     }
+    this.ambient = new Ambient(data, hash, at, prepare, size.width, size.height, this.roads, this.roadWeights);
     this.stats.cars = this.cars.length; this.stats.trains = this.trains.length;
   }
 
@@ -127,7 +134,7 @@ export class MotionLayer {
     if (document.hidden) { this.last = now; return; }
     const v = this.view(); if (!v) return;
     const sc = this.scene();
-    const live = sc.animate && (sc.night > 0.02 || sc.monsoon > 0.02 || (this.flocks.length > 0 && sc.night < 0.6));
+    const live = sc.animate; // water, trains, planes and birds move day and night
     const key = `${v.x.toFixed(1)},${v.y.toFixed(1)},${v.w.toFixed(1)},${v.cw},${v.ch},${sc.night.toFixed(3)},${sc.monsoon.toFixed(3)},${sc.animate}`;
     // Static scenes redraw only when the view changes; animated ones at ≤30 fps.
     if (key === this.lastKey && (!live || now - this.lastDraw < FRAME_MS - 4)) return; // 4 ms slack: on 60 Hz, every 2nd frame
@@ -140,6 +147,7 @@ export class MotionLayer {
   };
 
   private step(dt: number) {
+    this.ambient.step(dt);
     const roosts = this.data.sky?.roosts || [];
     for (const f of this.flocks) {
       f.s += BIRD_SPEED * dt;
@@ -175,6 +183,9 @@ export class MotionLayer {
       if (sc.night > 0) { ctx.fillStyle = `rgba(12,16,15,${0.86 * sc.night})`; ctx.fillRect(bx, by, bw, bh); }
       s.blankRects++;
     }
+
+    const frame = { ctx, t, z, night: sc.night, sun: sc.sun, x0, y0, x1, y1, onScreen };
+    if (sc.animate && this.data.sky) this.ambient.drawGround(frame, this.data.sky);
 
     // Monsoon cloud shadows: a few huge soft shapes drifting east-north-east.
     if (sc.monsoon > 0.02 && sc.animate) {
@@ -220,6 +231,7 @@ export class MotionLayer {
         }
       }
     }
+    if (sc.animate && this.data.sky) this.ambient.drawAir(frame, this.data.sky, sc.festival);
     if (sc.night < 0.02 || !sc.animate) return;
     const n = sc.night;
     ctx.globalCompositeOperation = 'lighter';
@@ -298,6 +310,7 @@ export class MotionLayer {
         ctx.fillStyle = `rgba(214,255,120,${0.9 * n * blink})`; ctx.fillRect(fx - r, fy - r, 2 * r, 2 * r); s.fireflies++;
       }
     }
+    this.ambient.drawNight(frame, sc.festival);
     ctx.globalCompositeOperation = 'source-over';
   }
 }

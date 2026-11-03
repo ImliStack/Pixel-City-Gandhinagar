@@ -167,10 +167,47 @@ const shadowPerMetre = Object.fromEntries(Object.entries(SUNS).map(([k, L]) => {
 const roostSet = data.features.filter((f) => (f.kind === 'park' || f.kind === 'water') && f.geometry.type === 'Polygon')
   .map((f) => { const ring = f.geometry.coordinates[0]; let a = 0, cx = 0, cy = 0; for (let i = 1; i < ring.length; i++) { const k = ring[i - 1][0] * ring[i][1] - ring[i][0] * ring[i - 1][1]; a += k; cx += (ring[i - 1][0] + ring[i][0]) * k; cy += (ring[i - 1][1] + ring[i][1]) * k; } return Math.abs(a) > 6000 ? project(cx / (3 * a), cy / (3 * a)) : null; })
   .filter((p) => p && inImageBox(p)).map(([x, y]) => [r1(x), r1(y)]);
+// Water: shimmer points sampled inside mapped lakes, ponds and the Sabarmati (weighted by area), plus
+// each water body's outline for night reflections.
+const waterPoly = data.features.filter((f) => f.kind === 'water' && f.geometry.type === 'Polygon');
+const water = [], waterRings = [];
+for (const f of waterPoly) {
+  const ring = f.geometry.coordinates[0], xs = ring.map((p) => p[0]), ys = ring.map((p) => p[1]);
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+  let area = 0; for (let i = 1; i < ring.length; i++) area += ring[i - 1][0] * ring[i][1] - ring[i][0] * ring[i - 1][1];
+  const n = Math.min(2500, Math.max(6, Math.round(Math.abs(area / 2) / 900)));
+  for (let k = 0, tries = 0; k < n && tries < n * 8; tries++) { const p = [x0 + rand() * (x1 - x0), y0 + rand() * (y1 - y0)]; if (inside(p, ring) && !f.geometry.coordinates.slice(1).some((h) => inside(p, h))) { water.push(project(p[0], p[1])); k++; } }
+  // RDP needs distinct endpoints, so simplify the ring as two open halves.
+  const pts = ring.slice(0, -1).map(([x, y]) => project(x, y)), mid = pts.length >> 1;
+  const img = [...simplify(pts.slice(0, mid + 1), 2), ...simplify(pts.slice(mid), 2).slice(1)];
+  if (img.length > 3) waterRings.push(flat(img));
+}
+// Trains: main-line rail (not sidings, yards or the metro), joined into continuous chains.
+const railSegs = data.features.filter((f) => f.kind === 'railway' && f.geometry.type === 'LineString' && f.tags.railway === 'rail' && !f.tags.service && f.tags.tunnel !== 'yes').map((f) => f.geometry.coordinates);
+const railUsed = new Set(), rail = [];
+while (railUsed.size < railSegs.length) {
+  let chain = railSegs.filter((s) => !railUsed.has(s)).sort((a, b) => b.length - a.length)[0]; railUsed.add(chain);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const sg of railSegs) {
+      if (railUsed.has(sg)) continue;
+      if (near(chain.at(-1), sg[0])) chain = [...chain, ...sg.slice(1)];
+      else if (near(chain.at(-1), sg.at(-1))) chain = [...chain, ...sg.slice(0, -1).reverse()];
+      else if (near(chain[0], sg.at(-1))) chain = [...sg.slice(0, -1), ...chain];
+      else if (near(chain[0], sg[0])) chain = [...sg.slice(1).reverse(), ...chain];
+      else continue;
+      railUsed.add(sg); grew = true;
+    }
+  }
+  const img = simplify(chain.map(([x, y]) => project(x, y, 0.6)), 1.5);
+  let len = 0; for (let i = 1; i < img.length; i++) len += Math.hypot(img[i][0] - img[i - 1][0], img[i][1] - img[i - 1][1]);
+  if (len > 4000) rail.push(flat(img));
+}
+
 const result = {
   schema: 1, mapId, version: meta.version,
   note: 'Motion overlay data in image px. Roads and metro from OSM; lamp, window, firefly and glow positions are authored ambience derived from OSM geometry.',
-  blank, roads, metro, sky: { shadowPerMetre, liftPerMetre: (() => { const a = project(0, 0, 1), b = project(0, 0, 0); return [+(a[0] - b[0]).toFixed(3), +(a[1] - b[1]).toFixed(3)]; })(), roosts: roostSet },
+  blank, roads, metro, water: { points: flat(water), rings: waterRings }, rail, sky: { shadowPerMetre, liftPerMetre: (() => { const a = project(0, 0, 1), b = project(0, 0, 0); return [+(a[0] - b[0]).toFixed(3), +(a[1] - b[1]).toFixed(3)]; })(), roosts: roostSet },
   lamps: flat(lampList), windows: flat(windows.filter(inImage)), fireflies: flat(fireflies.filter(inImage)), glows,
 };
 fs.writeFileSync(`${out}/motion.json`, JSON.stringify(result));

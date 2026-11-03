@@ -162,6 +162,11 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 - **Metro Line 2**: lit trains run both viaduct sections (Sector-10A → Mahatma Mandir, Dholakuva → Raysan), stopping at the 12 real stations.
 - **Living windows** switch on and off on their own rhythms, **street lamps** pulse gently (and a few flicker), **busy blocks** glow, and **fireflies** drift in parks.
 - **Monsoon cloud shadows** slowly cross the monsoon layer.
+- **Water that moves**: sun glints and slow ripples on every mapped lake, pond and the Sabarmati, turning to moonlit specks and a warm reflected glow at night.
+- **Trains and planes**: a blue-and-cream train shuttles along the real main railway line, lit at night. Airliners cross the city with their shadows far below on the ground. The flight paths are illustrative, not real routes, and run about 3× real speed so they appear often.
+- **Daytime streets**: cars, yellow-green auto-rickshaws and red buses on the real roads, and the odd cow ambling across a residential street.
+- **Festival modes**: set automatically by the India date, or picked in the layer menu (`?festival=uttarayan|diwali|navratri`). Uttarayan (14–15 January) puts kites over every roof, on strings, with shadows. Diwali brings flickering lamps and fireworks after dark. Navratri lights garba circles in the parks.
+- **Photo postcards** (`P`): frame any view, including night, monsoon or festival scenes, add a caption and save it as a JPEG postcard with date and OpenStreetMap attribution, or share it straight from your phone.
 - **Birds by day**: crows fly in loose V formations and white egrets drift in scatters between the city's parks and lakes. Each bird casts a soft shadow on the ground, offset along each layer's sun direction, so the shadow slides apart from the bird as it climbs.
 - Runs at ≤ 30 fps (≈ 1–2 ms per frame at full-city zoom) and draws only what is on screen. It pauses in hidden tabs, is off under `prefers-reduced-motion`, and has an on/off switch in the layer menu.
 
@@ -220,6 +225,7 @@ The exported map in `outputs/maps/gandhinagar-city` opens straight away. To rebu
 | `R` | Fly to a random landmark |
 | `D` | Daily landmark game |
 | `H` | Scavenger hunts |
+| `P` | Photo postcard |
 | `G` | Geography debug overlay |
 | `?` | About this map |
 | `Esc` | Close panels / clear selection |
@@ -285,7 +291,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 46/46 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 52/52 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (49 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
@@ -303,13 +309,13 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 - [x] Night motion: cross-fade, live India time, traffic, metro, windows, lamps, fireflies, monsoon clouds
 - [x] Live cursors of other visitors and scavenger hunts
 - [x] Birds with moving shadows: flocks between parks and lakes, with shadows cast along each layer's sun direction
-- [ ] **Lake and river shimmer**: ripples and sun glints clipped to the OSM water shapes, with lamp reflections at night (motion overlay; feasible)
+- [x] Lake and river shimmer
 - [ ] **Wind in the trees**: needs a tree-mask tile layer from the renderer, then a gentle sway shader; feasible but needs a re-render
-- [ ] Planes on the Ahmedabad airport approach and trains on the railway lines, with shadows
-- [ ] Festival modes: kites over every roof for Uttarayan (14 January), lamps for Diwali, garba glow for Navratri
-- [ ] Auto-rickshaws and buses in the traffic, and the odd cow crossing a sector road
+- [x] Trains on the main railway line, and planes with shadows (illustrative flight paths)
+- [x] Festival modes: Uttarayan kites, Diwali lamps and fireworks, Navratri garba circles
+- [x] Daytime traffic with auto-rickshaws and buses, and the odd cow
 - [ ] Live weather: a Worker reads Gandhinagar's real weather and picks the matching layer (rain → monsoon)
-- [ ] Photo mode: frame a view, pick a layer and save a postcard with attribution
+- [x] Photo postcards
 - [ ] GIFT City and the riverfront south of the current extent
 - [ ] Terrain (open DEM) instead of flat ground
 - [ ] Hand-modelled Mahatma Mandir, Sachivalaya blocks and Infocity

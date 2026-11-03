@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OpenSeadragon from 'openseadragon';
-import { Check, ChevronDown, Dices, Flag, Github, Star, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
+import { Camera, Check, ChevronDown, Dices, Flag, Github, Star, Info, Layers, LocateFixed, MapPin, Minus, Plus, Search, Share2, Target, X } from 'lucide-react';
 import { describePoi, isStreet, kindLabel, nearestArea, pointForPoi, searchPois, type Metadata, type Poi } from './types';
 import { TileCrop } from './TileCrop';
 import { groundMeters } from '../shared/daily.mjs';
@@ -10,6 +10,8 @@ import { useSocial } from './social';
 import { MotionLayer, paintMinimapBlank, type MotionData } from './motion';
 import { DailyGame } from './DailyGame';
 import { Hunts } from './Hunts';
+import { Postcard } from './Postcard';
+import { festivalFor, type Festival } from './ambient';
 import { Cursors } from './Cursors';
 
 const DEFAULT_MAP = 'gandhinagar-city';
@@ -24,6 +26,8 @@ const localPath = (base: string, file: string) => {
   return file.startsWith('/') ? file : `${base}${file}`;
 };
 const LAYER_LABEL: Record<Layer, string> = { A: 'Summer day', night: 'Night', monsoon: 'Monsoon', winter: 'Winter morning', B: 'Pixel edge', source: 'Source geometry' };
+const FESTIVAL_LABEL = { uttarayan: 'Uttarayan', diwali: 'Diwali', navratri: 'Navratri' } as const;
+const FESTIVAL_NOTE = { uttarayan: '🪁 Happy Uttarayan! Kites over every roof', diwali: '🪔 Happy Diwali! Lamps and fireworks after dark', navratri: '💃 Navratri nights: garba circles light up the parks' } as const;
 const SCENE_LAYERS: Layer[] = ['A', 'night', 'monsoon', 'winter'];
 const STYLE_LAYERS: Layer[] = ['B', 'source'];
 const MINIMAP_WIDTH = 176;
@@ -72,6 +76,12 @@ export default function App() {
   const [motionData, setMotionData] = useState<MotionData | null>(null);
   const [gameOpen, setGameOpen] = useState(false);
   const [huntsOpen, setHuntsOpen] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  // Festival mode: automatic by India date, or picked in the layer menu (?festival=diwali also works).
+  const [festivalPick, setFestivalPick] = useState<'auto' | 'off' | Exclude<Festival, null>>(() => { const f = new URLSearchParams(window.location.search).get('festival'); return f === 'uttarayan' || f === 'diwali' || f === 'navratri' || f === 'off' ? f : 'auto'; });
+  const festival: Festival = festivalPick === 'auto' ? festivalFor() : festivalPick === 'off' ? null : festivalPick;
+  const festivalRef = useRef<Festival>(festival); festivalRef.current = festival;
+  const [festivalNoteHidden, setFestivalNoteHidden] = useState(false);
   // Shared as a live cursor: the view centre in image pixels and the image zoom (never the visitor's location).
   const social = useSocial(() => {
     const v = viewerRef.current;
@@ -301,7 +311,7 @@ export default function App() {
       if (!v?.world.getItemCount() || !containerRef.current) return null;
       const r = v.viewport.viewportToImageRectangle(v.viewport.getBounds(true));
       return { x: r.x, y: r.y, w: r.width, h: r.height, cw: containerRef.current.clientWidth, ch: containerRef.current.clientHeight };
-    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current, sun: stackRef.current[stackRef.current.length - 1]?.layer || 'A' }));
+    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current, sun: stackRef.current[stackRef.current.length - 1]?.layer || 'A', festival: festivalRef.current }), { width: metadata?.width || 58368, height: metadata?.height || 47104 });
     motion.start();
     (window as unknown as { __motion?: MotionLayer }).__motion = motion;
     return () => motion.stop();
@@ -372,10 +382,11 @@ export default function App() {
       else if (event.key.toLowerCase() === 'g') setDebug((value) => !value);
       else if (event.key.toLowerCase() === 'r') randomLandmark();
       else if (event.key.toLowerCase() === 'd') { setGameOpen((value) => !value); setHuntsOpen(false); setSelectedId(null); }
+      else if (event.key.toLowerCase() === 'p') setPhotoOpen((value) => !value);
       else if (event.key.toLowerCase() === 'h') { setHuntsOpen((value) => !value); setGameOpen(false); }
       else if (event.key === '?') setInfoOpen((value) => !value);
       else if (event.key === '/') { event.preventDefault(); searchRef.current?.focus(); }
-      else if (event.key === 'Escape') { setSelectedId(null); setLayersOpen(false); setShareFallback(''); setGameOpen(false); setHuntsOpen(false); }
+      else if (event.key === 'Escape') { setSelectedId(null); setLayersOpen(false); setShareFallback(''); setGameOpen(false); setHuntsOpen(false); setPhotoOpen(false); }
       else if (event.key.startsWith('Arrow')) {
         const viewer = viewerRef.current;
         if (!viewer?.world.getItemCount()) return;
@@ -401,6 +412,14 @@ export default function App() {
 
   const viewer = viewerRef.current;
   const ready = !!viewer?.world.getItemCount();
+  // Caption suggestion for postcards: the sector nearest the middle of the view.
+  const nearestAreaName = () => {
+    const v = viewerRef.current; if (!v?.world.getItemCount() || !metadata) return 'Gandhinagar';
+    const c = v.viewport.viewportToImageCoordinates(v.viewport.getCenter());
+    let best = 'Gandhinagar', d = Infinity;
+    for (const p of metadata.pois) { if (p.kind !== 'neighbourhood' || !p.image) continue; const dd = Math.hypot(p.image[0] - c.x, p.image[1] - c.y); if (dd < d) { d = dd; best = p.name; } }
+    return `${best}, Gandhinagar`;
+  };
   const screenPoint = useCallback((x: number, y: number) => {
     const v = viewerRef.current;
     if (!v?.world.getItemCount()) return null;
@@ -513,6 +532,10 @@ export default function App() {
 
     {!social.offline && social.snap && <Cursors cursors={social.snap.cursors || []} viewer={ready ? viewer : null} onJump={(c) => { const v = viewerRef.current; if (!v) return; v.viewport.panTo(v.viewport.imageToViewportCoordinates(c.x, c.y)); v.viewport.zoomTo(v.viewport.imageToViewportZoom(Math.max(c.z, 0.02))); v.viewport.applyConstraints(); }} />}
 
+    {festival && motionOn && !festivalNoteHidden && <button className="festival-note" onClick={() => setFestivalNoteHidden(true)} title="Hide">{FESTIVAL_NOTE[festival]}{festival !== 'uttarayan' && layer !== 'night' ? ' · switch to Night' : ''}</button>}
+
+    {photoOpen && <Postcard viewer={ready ? viewer : null} motionCanvas={motionCanvasRef.current} defaultCaption={selected?.name || nearestAreaName()} layerLabel={LAYER_LABEL[layerRef.current]} onClose={() => setPhotoOpen(false)} />}
+
     {huntsOpen && metadata && <Hunts metadata={metadata} viewer={ready ? viewer : null} counts={social.snap?.hunts || {}} reportHunt={social.reportHunt} onClose={() => setHuntsOpen(false)} onFly={choosePoi} />}
 
     {!gameOpen && !huntsOpen && filters.length > 0 && metadata && <section className={`place-list ${listOpen ? 'open' : ''}`} aria-label="Filtered places">
@@ -554,6 +577,7 @@ export default function App() {
       <button onClick={randomLandmark} aria-label="Random landmark" title="Random landmark (R)" disabled={!ready}><Dices size={18} /></button>
       <button onClick={() => { setHuntsOpen(!huntsOpen); setGameOpen(false); }} aria-label="Scavenger hunts" aria-pressed={huntsOpen} className={huntsOpen ? 'active' : ''} title="Scavenger hunts (H)" disabled={!ready}><Flag size={18} /></button>
       <button onClick={() => { setGameOpen(!gameOpen); setHuntsOpen(false); setSelectedId(null); }} aria-label="Daily landmark game" aria-pressed={gameOpen} className={gameOpen ? 'active' : ''} title="Find the landmark — daily game (D)" disabled={!ready}><Target size={18} /></button>
+      <button onClick={() => setPhotoOpen(!photoOpen)} aria-label="Photo postcard" aria-pressed={photoOpen} className={photoOpen ? 'active' : ''} title="Photo postcard (P)" disabled={!ready}><Camera size={18} /></button>
       <button onClick={share} aria-label="Copy link to this view" title="Share view" disabled={!ready}>{copied ? <Check size={18} /> : <Share2 size={18} />}</button>
       <button onClick={() => setLayersOpen(!layersOpen)} aria-label="Map layers" aria-expanded={layersOpen} title="Layers"><Layers size={18} /></button>
       <button onClick={() => setInfoOpen(true)} aria-label="About this map" title="About (?)"><Info size={18} /></button>
@@ -564,6 +588,8 @@ export default function App() {
         {STYLE_LAYERS.map((l) => <button key={l} role="menuitemradio" aria-checked={layer === l} disabled={!layers[l]} title={layers[l] ? undefined : 'Not exported for this map yet — still rendering or tiling'} className={layer === l ? 'active' : ''} onClick={() => { setLiveClock(false); setLayer(l); setLayersOpen(false); }}>{LAYER_LABEL[l]}</button>)}
         <span className="menu-heading">Motion</span>
         <button role="menuitemcheckbox" aria-checked={liveClock} className={liveClock ? 'active' : ''} disabled={!layers.night} onClick={() => setLiveClock(!liveClock)} title="Day, dusk and night follow the current time in India">Live India time</button>
+        <span className="menu-heading">Festival</span>
+        <div className="festival-row">{(['auto', 'uttarayan', 'diwali', 'navratri', 'off'] as const).map((f) => <button key={f} role="menuitemradio" aria-checked={festivalPick === f} className={festivalPick === f ? 'active' : ''} onClick={() => { setFestivalPick(f); setFestivalNoteHidden(false); }} title={f === 'auto' ? 'Follows the India calendar' : undefined}>{f === 'auto' ? 'By date' : f === 'off' ? 'Off' : FESTIVAL_LABEL[f]}</button>)}</div>
         <button role="menuitemcheckbox" aria-checked={motionOn} className={motionOn ? 'active' : ''} disabled={!motionData} onClick={() => setMotionOn(!motionOn)} title={reducedMotion ? 'Your system asks for reduced motion' : 'Birds by day; traffic, metro, windows, lamps and fireflies at night; monsoon clouds'}>Night &amp; weather motion</button>
         <p>{Object.keys(layers).length < 6 ? 'Greyed layers are still being rendered or tiled. ' : ''}All layers are the same geometry rendered with different light and palette. No generative art layer exists yet.</p>
       </div>}
@@ -603,7 +629,7 @@ export default function App() {
       <p><strong>Art status.</strong> {metadata?.artNote || 'Deterministic render only.'}</p>
       <p><strong>Coverage.</strong> {metadata?.coverage?.note || 'The dashed line marks the working extent.'}</p>
       {maps.length > 1 && <p><strong>Maps on this machine.</strong> {maps.map((m, i) => <span key={m.id}>{i ? ' · ' : ''}{m.id === mapId ? <b>{m.subtitle || m.id}</b> : <a href={`/?map=${encodeURIComponent(m.id)}`}>{m.subtitle || m.id}</a>}</span>)} · <a href="/?map=jaipur">Jaipur (historical)</a></p>}
-      <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · <kbd>R</kbd> random landmark · <kbd>D</kbd> daily game · <kbd>H</kbd> hunts · arrows pan · <kbd>G</kbd> debug</p>
+      <p className="keys"><kbd>/</kbd> search · <kbd>+</kbd><kbd>−</kbd> zoom · <kbd>0</kbd> reset · <kbd>R</kbd> random landmark · <kbd>D</kbd> daily game · <kbd>H</kbd> hunts · <kbd>P</kbd> postcard · arrows pan · <kbd>G</kbd> debug</p>
       <p className="about-links"><a href={GITHUB_URL} target="_blank" rel="noopener"><Github size={15} />Source on GitHub. A ⭐ helps</a><a href={IMLISTACK_URL} target="_blank" rel="noopener"><span>More from <b>ImliStack</b> →</span></a></p>
       <p className="fine">{metadata?.attribution}</p>
     </section></div>}
