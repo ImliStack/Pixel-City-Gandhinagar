@@ -58,6 +58,16 @@ async function tour() {
   // Birds by day: centre on the flock closest to mid-flight.
   const flock = await page.evaluate(() => { const m = window.__motion; const f = m.flocks.slice().sort((a, b) => Math.abs(a.s / a.len - 0.5) - Math.abs(b.s / b.len - 0.5))[0]; const k = f.s / f.len; return [f.from[0] + (f.to[0] - f.from[0]) * k, f.from[1] + (f.to[1] - f.from[1]) * k - 150]; });
   await caption('Birds by day, with shadows on the ground'); await go(flock, 0.2); await wait(4200);
+  await caption('Autos, buses, the odd cow', 'and lakes that shimmer in the sun'); await go(poi('vidhan-sabha'), 0.2); await wait(4000);
+  const motionData = JSON.parse(fs.readFileSync(`outputs/maps/${mapId}/motion.json`)), rl = motionData.rail[0], rmid = [rl[Math.floor(rl.length / 4) * 2], rl[Math.floor(rl.length / 4) * 2 + 1]];
+  await caption('Trains on the main line, planes overhead'); await go(rmid, 0.1); await wait(3600);
+  const festival = async (name) => { await page.click('[aria-label="Map layers"]'); await wait(250); await page.click(`.festival-row button:has-text("${name}")`); await wait(150); if (await page.locator('.layer-menu').count()) await page.click('[aria-label="Map layers"]'); };
+  await caption('Festival modes: Uttarayan kites over every roof'); await festival('Uttarayan'); await go(poi('vidhan-sabha'), 0.13); await wait(4600);
+  await caption('Diwali: lamps and fireworks after dark'); await festival('Diwali'); await layerTo('Night'); await go(poi('vidhan-sabha'), 0.1); await wait(5200);
+  await festival('By date'); await layerTo('Summer day'); await wait(600);
+  if (await page.locator('[data-testid="weather"]').count()) { await caption('Live weather: the map follows Gandhinagar\u2019s sky'); await page.click('[data-testid="weather"]'); await go([meta.width / 2, meta.height / 2], 0.03); await wait(3600); await page.click('[data-testid="weather"]'); await layerTo('Summer day'); }
+  await caption('Photo postcards: save any view'); await go(poi('akshardham'), 0.45); await wait(1800);
+  await page.keyboard.press('p'); await page.fill('[data-testid="postcard-caption"]', 'Akshardham, Gandhinagar'); await page.click('[data-testid="postcard-save"]'); await wait(3800); await page.keyboard.press('Escape');
   await caption('Explore it yourself 👇', 'pixel-city-gandhinagar.imlistack.workers.dev'); await go([meta.width / 2, meta.height / 2], 0.012); await wait(3000);
   await caption('Built by ImliStack', 'imlistack.com · open source on GitHub'); await wait(2600);
 }

@@ -11,6 +11,8 @@ await new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('vite
 const poi = id => meta.pois.find(p => p.id === id);
 const at = (id, z, layer = 'A', extra = '') => { const p = poi(id); return p ? `#v=2&m=${mapId}&l=${layer}&cx=${p.image[0].toFixed(1)}&cy=${p.image[1].toFixed(1)}&z=${z}${extra}` : null; };
 const layers = Object.keys(meta.layers);
+const motion = JSON.parse(fs.readFileSync(`outputs/maps/${mapId}/motion.json`)), station = meta.pois.find(p => p.category === 'metro' && p.name === 'Akshardham');
+const view = ([x, y], z, layer = 'A') => `#v=2&m=${mapId}&l=${layer}&cx=${x.toFixed(1)}&cy=${y.toFixed(1)}&z=${z}`;
 const shots = [
   ['overview', `#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.0175`],
   ['capital-complex', at('vidhan-sabha', 0.45)],
@@ -21,6 +23,11 @@ const shots = [
   ['places', `#v=2&m=${mapId}&l=A&cx=${meta.width / 2}&cy=${meta.height / 2}&z=0.03&f=hospital,fuel,school,bank`, 'places'],
   ['daily-game', at('vidhan-sabha', 0.02), 'daily'],
   ['presence', at('vidhan-sabha', 0.3), 'presence'],
+  ['hunts', view(station.image, 0.3), 'hunts'],
+  ['uttarayan', at('vidhan-sabha', 0.14), null, '&festival=uttarayan'],
+  ['diwali', at('vidhan-sabha', 0.12, 'night'), null, '&festival=diwali'],
+  ['water', view([motion.water.points[0], motion.water.points[1]], 0.2)],
+  ['postcard', at('akshardham', 0.45), 'postcard'],
   ...['night', 'monsoon', 'winter'].filter(l => layers.includes(l)).map(l => [l, at('vidhan-sabha', 0.55, l)]),
 ].filter(s => s[1]);
 const external = [];
@@ -29,9 +36,11 @@ try {
   for (const [ctxName, opts] of [['desktop', {viewport: {width: 1440, height: 900}, deviceScaleFactor: 1}], ['mobile', {viewport: {width: 390, height: 844}, isMobile: true, hasTouch: true, deviceScaleFactor: 2}]]) {
     const ctx = await browser.newContext(opts);
     await ctx.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });
-    for (const [name, hash, action] of ctxName === 'desktop' ? shots : [['mobile', shots[1][1]]]) {
+    for (const [name, hash, action, query = ''] of ctxName === 'desktop' ? shots : [['mobile', shots[1][1]]]) {
       const page = await ctx.newPage(); // fresh page: a hash-only change would keep the previous layer and panels
-      await page.goto(`${base}/?map=${mapId}${hash}`); await page.waitForSelector('.minimap-view', {timeout: 30000}); await page.waitForTimeout(3500);
+      await page.goto(`${base}/?map=${mapId}${query}${hash}`); await page.waitForSelector('.minimap-view', {timeout: 30000}); await page.waitForTimeout(3500);
+      if (action === 'hunts') { await page.evaluate(() => localStorage.removeItem('pc-hunts')); await page.keyboard.press('h'); await page.click('[data-testid="hunt-metro"]'); await page.mouse.move(721, 451); await page.waitForTimeout(1500); }
+      if (action === 'postcard') { await page.keyboard.press('p'); await page.fill('[data-testid="postcard-caption"]', 'Akshardham, Gandhinagar'); await page.click('[data-testid="postcard-save"]'); await page.waitForSelector('[data-testid="postcard-preview"]'); await page.waitForTimeout(600); }
       if (action === 'places') { await page.click('.places-toggle'); await page.waitForTimeout(500); }
       // Social shots: two extra tabs act as other visitors (same local in-memory server).
       if (action === 'daily' || action === 'presence') {

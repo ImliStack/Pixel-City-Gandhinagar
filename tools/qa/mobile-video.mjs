@@ -55,6 +55,10 @@ async function tour(record) {
   await caption('Scavenger hunts: zoom in to stamp places'); await tap('[aria-label="Scavenger hunts"]'); await wait(600); await tap('[data-testid="hunt-metro"]'); await wait(700);
   await go(meta.pois.find(p => p.category === 'metro' && p.name === 'Akshardham').image, 0.3); await wait(3800); if (record) await snap('hunt');
   await tap('[aria-label="Close hunts"]');
+  await caption('Festivals: Uttarayan kites over every roof'); await tap('[aria-label="Map layers"]'); await wait(300); await tap('.festival-row button:has-text("Uttarayan")'); if (await page.locator('.layer-menu').count()) await tap('[aria-label="Map layers"]');
+  await go(poi('vidhan-sabha'), 0.14); await wait(4200); if (record) await snap('uttarayan');
+  await tap('[aria-label="Map layers"]'); await wait(300); await tap('.festival-row button:has-text("By date")'); if (await page.locator('.layer-menu').count()) await tap('[aria-label="Map layers"]');
+  await caption('Save any view as a postcard'); await go(poi('akshardham'), 0.45); await wait(1500); await tap('[aria-label="Photo postcard"]'); await wait(500); await tap('[data-testid="postcard-save"]'); await wait(3200); if (record) await snap('postcard'); await tap('[aria-label="Close photo mode"]');
   await caption('Daily game: find the landmark'); await tap('[aria-label="Daily landmark game"]'); await wait(2600); if (record) await snap('game');
   await tap('[data-testid="guess"]'); await wait(3000); await tap('[aria-label="Close game"]');
   await caption('Explore it yourself · built by ImliStack'); await go([meta.width / 2, meta.height / 2], 0.012); await wait(3200);

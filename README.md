@@ -82,6 +82,30 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
     <td align="center"><sub><b>Daily game</b> — find today's 3 places; see where others guessed</sub></td>
     <td align="center"><sub><b>Who's here</b> — anonymous pixel faces, live count and visits</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/hunts.jpg" alt="Scavenger hunt: Ride Metro Line 2, a station stamped when zoomed in" /></td>
+    <td width="50%"><img src="docs/screenshots/water.jpg" alt="Lake shimmer, birds and daytime traffic" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Scavenger hunts</b> — zoom in on a real place to stamp it</sub></td>
+    <td align="center"><sub><b>Living city</b> — shimmering water, birds with shadows, autos and buses</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/uttarayan.jpg" alt="Uttarayan festival mode: kites over the capital complex rooftops" /></td>
+    <td width="50%"><img src="docs/screenshots/diwali.jpg" alt="Diwali festival mode: lamps and fireworks at night" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Uttarayan</b> — kites on strings over every roof, with shadows</sub></td>
+    <td align="center"><sub><b>Diwali</b> — flickering lamps and fireworks after dark</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/postcard.jpg" alt="Photo postcard mode with caption and preview" /></td>
+    <td width="50%"><img src="docs/screenshots/night.jpg" alt="Night layer" /></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Photo postcards</b> — save any view with caption and attribution</sub></td>
+    <td align="center"><sub><b>Live weather</b> chip (top left) can drive the layer · night shown here</sub></td>
+  </tr>
 </table>
 
 <table>
@@ -103,9 +127,13 @@ schools or metro stations with pixel-icon filters. It runs locally, with no map 
 <td width="33%"><img src="docs/screenshots/mobile-akshardham.jpg" alt="Akshardham on a phone" /></td>
 <td width="33%"><img src="docs/screenshots/mobile-night.jpg" alt="Night with traffic on a phone" /></td>
 <td width="33%"><img src="docs/screenshots/mobile-hunt.jpg" alt="Scavenger hunt on a phone" /></td>
+</tr><tr>
+<td width="33%"><img src="docs/screenshots/mobile-uttarayan.jpg" alt="Uttarayan kites on a phone" /></td>
+<td width="33%"><img src="docs/screenshots/mobile-postcard.jpg" alt="Photo postcard on a phone" /></td>
+<td width="33%"><img src="docs/screenshots/mobile-game.jpg" alt="Daily game on a phone" /></td>
 </tr></table>
 
-<sub>Vertical phone tour: <a href="docs/social/pixel-city-mobile.mp4">docs/social/pixel-city-mobile.mp4</a> (41 s, 1080×1920)</sub>
+<sub>Vertical phone tour: <a href="docs/social/pixel-city-mobile.mp4">docs/social/pixel-city-mobile.mp4</a> (49 s, 1080×1920)</sub>
 
 ## ✦ How close is it to the real Gandhinagar?
 
