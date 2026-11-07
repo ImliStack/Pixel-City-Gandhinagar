@@ -3,6 +3,7 @@
 // and festival modes. Everything here is decoration on top of the real map: positions come from OSM
 // geometry (water, rail, roads), but individual vehicles, planes, kites and lamps are invented.
 import type { MotionData } from './motion';
+import { Vehicles } from './vehicles';
 
 export type Festival = 'uttarayan' | 'diwali' | 'navratri' | null;
 type Hash = (n: number) => number;
@@ -27,7 +28,6 @@ export function festivalFor(now = Date.now()): Festival {
 }
 
 const KITE_COLOURS = ['#e8413a', '#f2c230', '#e0418f', '#2fa3d8', '#3fae4a', '#f08a24', '#8e5bd8'];
-const CAR_COLOURS = ['#e9e9e4', '#b9bec4', '#3a3f47', '#b23a32', '#3b6fb6'];
 const PLANE_SPEED = 1100, // ~3× a real approach speed: the city is 12 km across, so real speed would mean one plane every few minutes
   TRAIN_SPEED = 140, TRAIN_LEN = 650;
 
@@ -39,10 +39,12 @@ export class Ambient {
   private cows: { road: number; s: number; seed: number }[] = [];
   private bursts: { x: number; y: number; t0: number; hue: number; seed: number }[] = [];
   private nextBurst = 0;
+  private vehicles: Vehicles | null = null;
   stats = { water: 0, trains: 0, planes: 0, dayVehicles: 0, cows: 0, kites: 0, festival: '' as string };
 
   constructor(private data: MotionData, private hash: Hash, private at: At, prepare: (p: number[]) => Poly, private width: number, private height: number,
-    private roads: { pts: Float32Array; cum: Float32Array; len: number; bbox: [number, number, number, number] }[], private roadWeight: number[]) {
+    private roads: { pts: Float32Array; cum: Float32Array; len: number; bbox: [number, number, number, number] }[], roadWeight: number[], transform?: { right: number[]; up: number[]; scale: number; eye?: number[] }) {
+    if (transform && typeof document !== 'undefined') this.vehicles = new Vehicles(transform, roads, roadWeight, hash);
     this.rail = (data.rail || []).map(prepare).filter((r) => r.len > 0);
     this.rail.forEach((r, i) => { this.trains.push({ line: i, s: r.len * 0.3, dir: 1, wait: 0 }, { line: i, s: r.len * 0.8, dir: -1, wait: 0 }); });
     for (let i = 0; i < 3; i++) this.planes.push(this.newFlight(i, i * 20, i === 0 ? 0.45 : 0)); // the first is already over the city
@@ -99,29 +101,10 @@ export class Ambient {
       }
       if (night > 0.3 && this.waterPath) { ctx.save(); ctx.clip(this.waterPath); ctx.fillStyle = `rgba(255,190,110,${0.05 * night * (0.9 + 0.1 * Math.sin(t))})`; ctx.fillRect(f.x0, f.y0, f.x1 - f.x0, f.y1 - f.y0); ctx.restore(); }
     }
-    // Daytime traffic: cars, auto-rickshaws (yellow-green) and buses (red), oriented along the road.
-    if (day > 0.2 && z > 0.09) {
-      const paths = CAR_COLOURS.map(() => new Path2D()), auto = new Path2D(), autoTop = new Path2D(), bus = new Path2D();
-      const limit = 2500, unit = 1.1;
-      for (let i = 0; i < this.roads.length && s.dayVehicles < limit; i++) {
-        const r = this.roads[i], b = r.bbox; if (b[2] < f.x0 || b[0] > f.x1 || b[3] < f.y0 || b[1] > f.y1) continue;
-        const n = Math.floor((r.len * this.roadWeight[i]) / 520);
-        for (let k = 0; k < n && s.dayVehicles < limit; k++) {
-          const h = this.hash(i * 977 + k), dir = h < 0.5 ? 1 : -1, v = 40 + h * 40, pos = (((h * r.len + v * dir * t) % r.len) + r.len) % r.len;
-          const [x, y, dx, dy] = this.at(r, pos); if (!onScreen(x, y)) continue;
-          const px = x - dy * 6 * dir, py = y + dx * 6 * dir, kind = this.hash(i * 31 + k * 7);
-          const len = (kind < 0.05 ? 55 : kind < 0.33 ? 14 : 20) * unit, wid = (kind < 0.05 ? 12 : kind < 0.33 ? 7 : 9) * unit;
-          const target = kind < 0.05 ? bus : kind < 0.33 ? auto : paths[Math.floor(this.hash(i + k * 3) * CAR_COLOURS.length)];
-          box(target, px, py, dx, dy, len, wid);
-          if (kind >= 0.05 && kind < 0.33) box(autoTop, px - dx * 2, py - dy * 2, dx, dy, len * 0.5, wid * 0.8);
-          s.dayVehicles++;
-        }
-      }
-      ctx.globalAlpha = Math.min(1, day * 1.5);
-      paths.forEach((p, i) => { ctx.fillStyle = CAR_COLOURS[i]; ctx.fill(p); });
-      ctx.fillStyle = '#f2c230'; ctx.fill(auto); ctx.fillStyle = '#2e8b3e'; ctx.fill(autoTop);
-      ctx.fillStyle = '#c8402f'; ctx.fill(bus);
-      ctx.globalAlpha = 1;
+    // Daytime traffic: 3D vehicle sprites in lanes (see vehicles.ts); flat fallback without a camera transform.
+    if (day > 0.2 && z > 0.06 && this.vehicles) {
+      this.vehicles.draw(ctx, t, f, this.at, Math.min(1, day * 1.5), z < 0.15 ? 900 : 1800);
+      s.dayVehicles = this.vehicles.stats.drawn;
     }
     // Cows: amble slowly across residential streets by day.
     if (day > 0.4 && z > 0.16) for (const c of this.cows) {
@@ -216,10 +199,6 @@ export class Ambient {
   }
 }
 
-function box(p: Path2D, x: number, y: number, dx: number, dy: number, len: number, wid: number) {
-  const hx = dx * len / 2, hy = dy * len / 2, wx = -dy * wid / 2, wy = dx * wid / 2;
-  p.moveTo(x - hx - wx, y - hy - wy); p.lineTo(x + hx - wx, y + hy - wy); p.lineTo(x + hx + wx, y + hy + wy); p.lineTo(x - hx + wx, y - hy + wy); p.closePath();
-}
 function dot(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, c: string) { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); }
 // Top-down airliner silhouette (fuselage, swept wings, tailplane), `size` = length in image px.
 function plane(ctx: CanvasRenderingContext2D, x: number, y: number, ang: number, size: number) {

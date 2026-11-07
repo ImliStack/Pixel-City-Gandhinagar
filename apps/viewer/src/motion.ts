@@ -99,7 +99,7 @@ export class MotionLayer {
   private fpsWindow: number[] = [];
   stats: MotionStats = { fps: 0, cars: 0, carsDrawn: 0, trains: 0, windowsLit: 0, lamps: 0, fireflies: 0, clouds: 0, blankRects: 0, frames: 0, drawMs: 0, birds: 0 };
 
-  constructor(private canvas: HTMLCanvasElement, private data: MotionData, private view: () => View | null, private scene: () => Scene, size = { width: 58368, height: 47104 }, private airCanvas: HTMLCanvasElement | null = null) {
+  constructor(private canvas: HTMLCanvasElement, private data: MotionData, private view: () => View | null, private scene: () => Scene, size: { width: number; height: number; transform?: { right: number[]; up: number[]; scale: number; eye?: number[] } } = { width: 58368, height: 47104 }, private airCanvas: HTMLCanvasElement | null = null) {
     this.ctx = canvas.getContext('2d')!;
     const kept = data.roads.map((r) => ({ ...prepare(r.p), oneway: !!r.oneway, w: r.w })).filter((r) => r.len > 20);
     this.roads = kept; this.roadWeights = kept.map((r) => r.w);
@@ -121,7 +121,7 @@ export class MotionLayer {
       const a = roosts[Math.floor(hash(i * 31) * roosts.length)], b = roosts[Math.floor(hash(i * 31 + 7) * roosts.length)];
       this.flocks.push({ from: a, to: b, s: hash(i * 5) * Math.hypot(b[0] - a[0], b[1] - a[1]), len: Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, alt: 25 + hash(i * 3) * 35, n: 4 + Math.floor(hash(i * 11) * 9), seed: i, hop: 0 });
     }
-    this.ambient = new Ambient(data, hash, at, prepare, size.width, size.height, this.roads, this.roadWeights);
+    this.ambient = new Ambient(data, hash, at, prepare, size.width, size.height, this.roads, this.roadWeights, size.transform);
     this.stats.cars = this.cars.length; this.stats.trains = this.trains.length;
   }
 

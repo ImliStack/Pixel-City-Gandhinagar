@@ -333,7 +333,7 @@ export default function App() {
       if (!v?.world.getItemCount() || !containerRef.current) return null;
       const r = v.viewport.viewportToImageRectangle(v.viewport.getBounds(true));
       return { x: r.x, y: r.y, w: r.width, h: r.height, cw: containerRef.current.clientWidth, ch: containerRef.current.clientHeight };
-    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current, sun: stackRef.current[stackRef.current.length - 1]?.layer || 'A', festival: festivalRef.current }), { width: metadata?.width || 58368, height: metadata?.height || 47104 }, airCanvasRef.current);
+    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current, sun: stackRef.current[stackRef.current.length - 1]?.layer || 'A', festival: festivalRef.current }), { width: metadata?.width || 58368, height: metadata?.height || 47104, transform: metadata?.transform as { right: number[]; up: number[]; scale: number; eye?: number[] } | undefined }, airCanvasRef.current);
     motion.start();
     (window as unknown as { __motion?: MotionLayer }).__motion = motion;
     return () => motion.stop();

@@ -1,4 +1,4 @@
-// Tree sway without re-rendering: a WebGL2 canvas over the map re-draws the map's own canopy pixels
+// Tree sway and water shimmer without re-rendering: a WebGL2 canvas over the map re-draws the map's own canopy pixels
 // (detected by colour: green-dominant, not too dark or bright) with a small offset that follows
 // travelling gusts anchored to image coordinates, so the wind does not slide when you pan.
 // Because this canvas sits above the ground motion layer, cars pass under tree crowns too.
@@ -17,6 +17,8 @@ float tree(vec3 c) {
   float g = c.g, m = max(c.r, c.b);
   return step(m * 1.07 + 0.012, g) * step(0.09 + 0.02 * (1.0 - night), g) * step(g, 0.86);
 }
+// Mapped water in every layer: blue-teal, clearly bluer than it is red, not grey.
+float water(vec3 c) { return step(c.r * 1.45 + 0.02, c.g) * step(c.r * 1.55 + 0.02, c.b) * step(c.g * 0.92, c.b) * step(0.16, c.b); }
 float h(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float n(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + vec2(1, 1)), f.x), f.y); }
@@ -30,9 +32,17 @@ void main() {
   vec2 d = vec2(sin(t * 2.1 + phase) + 0.6 * (n(img / 90.0 + t * 0.25) - 0.5), 0.45 * cos(t * 1.7 + phase * 1.3)) * amp * gust;
   vec2 src = (px + d) / res;
   vec3 c = texture(map, vec2(src.x, src.y)).rgb;
-  if (tree(c) < 0.5) discard;
-  // Lit side of the gust: a touch brighter as leaves turn, so motion reads even in flat canopy.
-  o = vec4(c * (1.0 + 0.06 * gust * sin(t * 2.1 + phase)), 1.0);
+  if (tree(c) > 0.5) {
+    // Lit side of the gust: a touch brighter as leaves turn, so motion reads even in flat canopy.
+    o = vec4(c * (1.0 + 0.06 * gust * sin(t * 2.1 + phase)), 1.0);
+    return;
+  }
+  // Water: the map's own lake and river pixels ripple in drifting bands, with sun glints by day.
+  vec3 w = texture(map, px / res).rgb;
+  if (water(w) < 0.5) discard;
+  float ripple = n(img / 38.0 + vec2(t * 0.35, t * 0.12)) - n(img / 23.0 - vec2(t * 0.22, -t * 0.3));
+  float glint = step(0.93, n(img / 5.0 + vec2(t * 1.7, t * 0.9))) * step(0.6, n(img / 70.0 + t * 0.1)) * (1.0 - night);
+  o = vec4(w * (1.0 + 0.13 * ripple) + vec3(0.55) * glint + vec3(0.05, 0.06, 0.08) * night * max(ripple, 0.0), 1.0);
 }`;
 
 export class TreeSway {
