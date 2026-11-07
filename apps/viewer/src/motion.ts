@@ -99,7 +99,7 @@ export class MotionLayer {
   private fpsWindow: number[] = [];
   stats: MotionStats = { fps: 0, cars: 0, carsDrawn: 0, trains: 0, windowsLit: 0, lamps: 0, fireflies: 0, clouds: 0, blankRects: 0, frames: 0, drawMs: 0, birds: 0 };
 
-  constructor(private canvas: HTMLCanvasElement, private data: MotionData, private view: () => View | null, private scene: () => Scene, size = { width: 58368, height: 47104 }) {
+  constructor(private canvas: HTMLCanvasElement, private data: MotionData, private view: () => View | null, private scene: () => Scene, size = { width: 58368, height: 47104 }, private airCanvas: HTMLCanvasElement | null = null) {
     this.ctx = canvas.getContext('2d')!;
     const kept = data.roads.map((r) => ({ ...prepare(r.p), oneway: !!r.oneway, w: r.w })).filter((r) => r.len > 20);
     this.roads = kept; this.roadWeights = kept.map((r) => r.w);
@@ -164,11 +164,14 @@ export class MotionLayer {
   }
 
   private draw(v: View, sc: Scene) {
-    const { canvas, ctx } = this, dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (canvas.width !== Math.round(v.cw * dpr) || canvas.height !== Math.round(v.ch * dpr)) { canvas.width = Math.round(v.cw * dpr); canvas.height = Math.round(v.ch * dpr); }
+    // Two canvases: ground life (water, traffic, trains, lights) sits under the tree-sway layer so cars pass
+    // beneath crowns; airborne life (birds, planes, kites) is drawn above it.
+    const { canvas } = this, dpr = Math.min(2, window.devicePixelRatio || 1), ground = this.ctx;
+    let ctx = ground;
+    const air = this.airCanvas?.getContext('2d') || ground;
     const z = v.cw / v.w; // screen px per image px
-    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.setTransform(dpr * z, 0, 0, dpr * z, -v.x * dpr * z, -v.y * dpr * z);
+    for (const c of this.airCanvas ? [canvas, this.airCanvas] : [canvas]) if (c.width !== Math.round(v.cw * dpr) || c.height !== Math.round(v.ch * dpr)) { c.width = Math.round(v.cw * dpr); c.height = Math.round(v.ch * dpr); }
+    for (const c of air === ground ? [ground] : [ground, air]) { c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, canvas.width, canvas.height); c.setTransform(dpr * z, 0, 0, dpr * z, -v.x * dpr * z, -v.y * dpr * z); }
     const x0 = v.x, y0 = v.y, x1 = v.x + v.w, y1 = v.y + v.h, pad = 40 / z;
     const onScreen = (x: number, y: number) => x > x0 - pad && x < x1 + pad && y > y0 - pad && y < y1 + pad;
     const t = this.time;
@@ -198,6 +201,7 @@ export class MotionLayer {
         ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r); s.clouds++;
       }
     }
+    ctx = air;
     // Birds by day: a dark flapping "v" at altitude, and its soft shadow on the ground offset along the sun.
     if (sc.animate && sc.night < 0.6 && z > 0.025 && this.data.sky) {
       const day = 1 - sc.night / 0.6, spm = this.data.sky.shadowPerMetre[sc.sun] || this.data.sky.shadowPerMetre.A, lift = this.data.sky.liftPerMetre;
@@ -231,7 +235,8 @@ export class MotionLayer {
         }
       }
     }
-    if (sc.animate && this.data.sky) this.ambient.drawAir(frame, this.data.sky, sc.festival);
+    if (sc.animate && this.data.sky) this.ambient.drawAir({ ...frame, ctx: air }, this.data.sky, sc.festival);
+    ctx = ground;
     if (sc.night < 0.02 || !sc.animate) return;
     const n = sc.night;
     ctx.globalCompositeOperation = 'lighter';

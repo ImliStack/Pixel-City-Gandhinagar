@@ -11,6 +11,7 @@ import { MotionLayer, paintMinimapBlank, type MotionData } from './motion';
 import { DailyGame } from './DailyGame';
 import { Hunts } from './Hunts';
 import { Postcard } from './Postcard';
+import { TreeSway } from './sway';
 import { festivalFor, type Festival } from './ambient';
 import type { Weather } from '../shared/weather.mjs';
 import { Cursors } from './Cursors';
@@ -47,6 +48,8 @@ export default function App() {
   const stackRef = useRef<{ layer: Layer; item: OpenSeadragon.TiledImage }[]>([]);
   const fadeRef = useRef(0);
   const motionCanvasRef = useRef<HTMLCanvasElement>(null);
+  const airCanvasRef = useRef<HTMLCanvasElement>(null);
+  const swayCanvasRef = useRef<HTMLCanvasElement>(null);
   const miniBlankRef = useRef<HTMLCanvasElement>(null);
   const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +72,8 @@ export default function App() {
   const store = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch { /* ignore */ } };
   // Night motion is on by default unless the OS asks for reduced motion; the layer menu can switch it.
   const [motionOn, setMotionOn] = useState(() => (stored('pc-motion') ?? (reducedMotion ? '0' : '1')) === '1');
+  // Tilt-shift: a soft blur band at the top and bottom of the screen for a miniature-model feel.
+  const [tiltShift, setTiltShift] = useState(() => (stored('pc-tilt') ?? '1') === '1');
   const motionOnRef = useRef(motionOn);
   motionOnRef.current = motionOn;
   // Live clock: day, dusk and night follow the current time in India.
@@ -328,12 +333,48 @@ export default function App() {
       if (!v?.world.getItemCount() || !containerRef.current) return null;
       const r = v.viewport.viewportToImageRectangle(v.viewport.getBounds(true));
       return { x: r.x, y: r.y, w: r.width, h: r.height, cw: containerRef.current.clientWidth, ch: containerRef.current.clientHeight };
-    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current, sun: stackRef.current[stackRef.current.length - 1]?.layer || 'A', festival: festivalRef.current }), { width: metadata?.width || 58368, height: metadata?.height || 47104 });
+    }, () => ({ night: mix('night'), monsoon: mix('monsoon'), animate: motionOnRef.current, sun: stackRef.current[stackRef.current.length - 1]?.layer || 'A', festival: festivalRef.current }), { width: metadata?.width || 58368, height: metadata?.height || 47104 }, airCanvasRef.current);
     motion.start();
     (window as unknown as { __motion?: MotionLayer }).__motion = motion;
     return () => motion.stop();
   }, [motionData]);
   useEffect(() => { store('pc-motion', motionOn ? '1' : '0'); }, [motionOn]);
+  useEffect(() => { store('pc-tilt', tiltShift ? '1' : '0'); }, [tiltShift]);
+
+  // Tree sway: snapshot the settled map, then redraw its canopy pixels with gusts at <=30 fps from
+  // neighbourhood zoom inward. Hidden while the view moves; recaptured as tiles finish loading.
+  useEffect(() => {
+    const canvas = swayCanvasRef.current;
+    if (!canvas || !metadata || !motionOn) return;
+    const sway = new TreeSway(canvas);
+    if (!sway.supported) return;
+    (window as unknown as { __sway?: TreeSway }).__sway = sway;
+    let raf = 0, last = 0, settleTimer = 0, recapture = 0, alive = true;
+    const view = () => {
+      const v = viewerRef.current; if (!v?.world.getItemCount() || !containerRef.current) return null;
+      const r = v.viewport.viewportToImageRectangle(v.viewport.getBounds(true)), cw = containerRef.current.clientWidth;
+      return { x: r.x, y: r.y, z: cw / r.width, cw, ch: containerRef.current.clientHeight };
+    };
+    const capture = () => {
+      const v = viewerRef.current, map = (v?.drawer as unknown as { canvas?: HTMLCanvasElement })?.canvas, vw = view();
+      if (map && vw && vw.z >= 0.25) sway.capture(map, vw); else sway.invalidate();
+    };
+    const moving = () => { sway.invalidate(); window.clearTimeout(settleTimer); settleTimer = window.setTimeout(capture, 280); };
+    const v = viewerRef.current;
+    v?.addHandler('viewport-change', moving);
+    v?.addHandler('animation', moving);
+    recapture = window.setInterval(() => { if (sway.ready) capture(); }, 1500);
+    settleTimer = window.setTimeout(capture, 600);
+    const loop = (t: number) => {
+      if (!alive) return; raf = requestAnimationFrame(loop);
+      if (document.hidden || t - last < 29) return; last = t;
+      const top = stackRef.current[stackRef.current.length - 1];
+      if (sway.ready) sway.draw(t / 1000, top?.layer === 'night' ? 1 : 0);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => { alive = false; cancelAnimationFrame(raf); window.clearTimeout(settleTimer); window.clearInterval(recapture); v?.removeHandler('viewport-change', moving); v?.removeHandler('animation', moving); sway.invalidate(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metadata, motionOn, loading]);
   useEffect(() => { if (motionData && miniBlankRef.current && metadata) paintMinimapBlank(miniBlankRef.current, motionData.blank, (MINIMAP_WIDTH * 2) / metadata.width); }, [motionData, metadata]);
 
   const zoom = useCallback((factor: number) => {
@@ -491,6 +532,9 @@ export default function App() {
   return <main className={`app ${debug ? 'debug-active' : ''}`}>
     <div ref={containerRef} className="map-canvas" role="region" aria-label={`Interactive orthographic map of ${metadata?.city || 'the city'}. Drag to pan; scroll or pinch to zoom.`} />
     <canvas ref={motionCanvasRef} className="motion-canvas" aria-hidden="true" />
+    <canvas ref={swayCanvasRef} className="motion-canvas sway-canvas" aria-hidden="true" />
+    <canvas ref={airCanvasRef} className="motion-canvas air-canvas" aria-hidden="true" />
+    {tiltShift && <div className="tilt-shift" aria-hidden="true"><i className="top" /><i className="bottom" /></div>}
     <svg className="map-overlay" width="100%" height="100%" aria-hidden="true">
       {coverage.length > 2 && <polygon points={coverage.map((p) => `${p.x},${p.y}`).join(' ')} className="coverage-line" />}
       {debug && metadata?.pois.map((poi) => {
@@ -614,6 +658,7 @@ export default function App() {
         <button role="menuitemcheckbox" aria-checked={liveClock} className={liveClock ? 'active' : ''} disabled={!layers.night} onClick={() => { setLiveClock(!liveClock); setLiveWeather(false); }} title="Day, dusk and night follow the current time in India">Live India time</button>
         <span className="menu-heading">Festival</span>
         <div className="festival-row">{(['auto', 'uttarayan', 'diwali', 'navratri', 'off'] as const).map((f) => <button key={f} role="menuitemradio" aria-checked={festivalPick === f} className={festivalPick === f ? 'active' : ''} onClick={() => { setFestivalPick(f); setFestivalNoteHidden(false); }} title={f === 'auto' ? 'Follows the India calendar' : undefined}>{f === 'auto' ? 'By date' : f === 'off' ? 'Off' : FESTIVAL_LABEL[f]}</button>)}</div>
+        <button role="menuitemcheckbox" aria-checked={tiltShift} className={tiltShift ? 'active' : ''} onClick={() => setTiltShift(!tiltShift)} title="Soft blur at the top and bottom, like a miniature model">Tilt-shift blur</button>
         <button role="menuitemcheckbox" aria-checked={motionOn} className={motionOn ? 'active' : ''} disabled={!motionData} onClick={() => setMotionOn(!motionOn)} title={reducedMotion ? 'Your system asks for reduced motion' : 'Birds by day; traffic, metro, windows, lamps and fireflies at night; monsoon clouds'}>Night &amp; weather motion</button>
         <p>{Object.keys(layers).length < 6 ? 'Greyed layers are still being rendered or tiled. ' : ''}All layers are the same geometry rendered with different light and palette. No generative art layer exists yet.</p>
       </div>}

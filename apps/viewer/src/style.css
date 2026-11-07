@@ -348,3 +348,13 @@ svg { display: block; }
 .weather-chip.live { box-shadow: 0 0 0 1.5px #9fd36b, var(--shadow); }
 .weather-chip .live-badge { font-size: 9px; font-weight: 700; letter-spacing: .6px; padding: 1px 5px; border-radius: 5px; background: #9fd36b; color: #1d2a22; }
 @media (max-width: 640px) { .weather-chip { font-size: 11px; padding: 3px 8px 3px 6px; } .weather-chip .label { display: none; } }
+
+/* Tree sway + airborne motion layer order: map < ground motion < sway < air */
+.sway-canvas { z-index: 1; }
+.air-canvas { z-index: 1; }
+/* Tilt-shift: blur bands with soft masks, above the map and motion, below every control. */
+.tilt-shift { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+.tilt-shift i { position: absolute; left: 0; right: 0; height: 24%; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.tilt-shift .top { top: 0; -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, transparent 100%); }
+.tilt-shift .bottom { bottom: 0; -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%); mask-image: linear-gradient(to top, #000 0%, transparent 100%); }
+@media (max-width: 640px) { .tilt-shift i { height: 18%; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); } }

@@ -191,6 +191,8 @@ What is *not* a measured match: facades, windows, roof tanks, compound walls, la
 - **Living windows** switch on and off on their own rhythms, **street lamps** pulse gently (and a few flicker), **busy blocks** glow, and **fireflies** drift in parks.
 - **Monsoon cloud shadows** slowly cross the monsoon layer.
 - **Live weather**: a chip shows Gandhinagar's current sky and temperature. Turn on *Live weather* (tap the chip, or use the layer menu) and the map follows it: rain switches to the monsoon layer, dark to night, December–February to winter morning, otherwise summer day. The data is [Open-Meteo](https://open-meteo.com/) (CC BY 4.0). The server fetches it at most once every 10 minutes and caches it, so your browser still talks only to this site.
+- **Trees in the wind**: tree crowns sway in travelling gusts. A WebGL2 pass redraws the map's own canopy pixels with a small offset, so no re-render was needed. The same layer sits above the traffic, so cars pass under tree crowns. Birds, planes and kites fly above it.
+- **Tilt-shift blur**: soft blur bands at the top and bottom of the screen give a miniature-model feel (layer menu switch). This and the tree sway are inspired by [Pixel Singapore](https://www.yadongxie.com/lab/singapore).
 - **Water that moves**: sun glints and slow ripples on every mapped lake, pond and the Sabarmati, turning to moonlit specks and a warm reflected glow at night.
 - **Trains and planes**: a blue-and-cream train shuttles along the real main railway line, lit at night. Airliners cross the city with their shadows far below on the ground. The flight paths are illustrative, not real routes, and run about 3× real speed so they appear often.
 - **Daytime streets**: cars, yellow-green auto-rickshaws and red buses on the real roads, and the odd cow ambling across a residential street.
@@ -320,7 +322,7 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 | C local image-model stage | ❌ not done — no licensed model fits 8 GB on this machine; documented, not faked |
 | Adjacent-region continuity vs a larger direct render | ✅ done — 99.3 % identical pixels at region corners |
 | DZI / WebP 512 px, overlap 1, chunk-native | ✅ done — byte-identical to libvips at every level |
-| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 53/53 |
+| Viewer: full-window art, compact search, vertical controls, lower-left minimap, share/version state, local fonts, zero external requests | ✅ done — browser QA 56/56 |
 | Search, place filters (incl. metro, rail, bus), zoom labels | ✅ done |
 | 30–40 s navigation demo | ✅ done (49 s MP4 + 24 s GIF) |
 | Reference-video art quality | ⚠️ not met — deterministic illustration, see the fidelity table above |
@@ -339,7 +341,9 @@ Ahmedabad's SVPI airport lies outside this coverage, and PDEU is not in the down
 - [x] Live cursors of other visitors and scavenger hunts
 - [x] Birds with moving shadows: flocks between parks and lakes, with shadows cast along each layer's sun direction
 - [x] Lake and river shimmer
-- [ ] **Wind in the trees**: needs a tree-mask tile layer from the renderer, then a gentle sway shader; feasible but needs a re-render
+- [x] Wind in the trees, from the map's own pixels (no re-render), with cars passing under crowns
+- [x] Tilt-shift blur
+- [ ] AI pixel-art repaint (Qwen-Image Turbo + pixel LoRA over our own render, as Pixel Singapore does); about $20–40 of rented GPU for the day layer, trial first
 - [x] Trains on the main railway line, and planes with shadows (illustrative flight paths)
 - [x] Festival modes: Uttarayan kites, Diwali lamps and fireworks, Navratri garba circles
 - [x] Daytime traffic with auto-rickshaws and buses, and the odd cow

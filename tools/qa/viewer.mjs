@@ -256,6 +256,17 @@ try {
   check('live weather: rain switches to the monsoon layer', wl === 'monsoon' && (await wet.locator('.weather-chip.live').count()) === 1, `layer ${wl}`);
   await wet.close();
 
+  // Free "Pixel Singapore" upgrades: tilt-shift blur bands, tree sway from the map's own pixels (which also
+  // puts cars under crowns), and an airborne canvas above it.
+  const swayPg = await context.newPage();
+  await swayPg.goto(`${base}/?map=${mapId}&festival=off#v=2&m=${mapId}&l=A&cx=${vsA[0] + 300}&cy=${vsA[1] + 400}&z=0.8`); await swayPg.waitForSelector('.minimap-view'); await swayPg.waitForTimeout(4000);
+  const sw = await swayPg.evaluate(async () => { const a = window.__sway?.stats.frames || 0; await new Promise(r => setTimeout(r, 1000)); return {ready: window.__sway?.ready, fps: (window.__sway?.stats.frames || 0) - a, air: !!document.querySelector('.air-canvas')}; });
+  check('tree sway runs on settled close views', sw.ready && sw.fps >= 20 && sw.air, JSON.stringify(sw));
+  check('tilt-shift blur bands present', (await swayPg.locator('.tilt-shift .top').count()) === 1);
+  await swayPg.click('[aria-label="Map layers"]'); await swayPg.click('.layer-menu button:has-text("Tilt-shift blur")');
+  check('tilt-shift can be switched off', (await swayPg.locator('.tilt-shift').count()) === 0);
+  await swayPg.close();
+
   // prefers-reduced-motion: no animation by default, layer switches are instant.
   const calm = await browser.newContext({viewport: {width: 1200, height: 800}, reducedMotion: 'reduce'});
   await calm.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });
