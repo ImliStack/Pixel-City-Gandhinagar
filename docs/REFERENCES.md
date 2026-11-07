@@ -71,3 +71,22 @@ Sources I read before adding animation: [NN/g, "Executing UX Animations: Duratio
 | tiny.london: ambient animation (its clouds) only runs while visible on screen, at a capped 15 fps. | The motion overlay caps at 30 fps, skips work for off-screen roads, lamps and windows, redraws static scenes only when the view changes, and pauses in hidden tabs. |
 | tiny.london: coarse levels stand in smoothly while sharper tiles load. | Layer switches cross-fade over 900 ms instead of swapping, so the new layer's tiles appear softly. |
 | Málaga (above): random-landmark fly-to with a short badge. | Already adopted. Pins now pop in (220 ms spring) when they appear. |
+
+## Pixel Singapore deep dive · 7 November 2026
+
+[Pixel Singapore](https://www.yadongxie.com/lab/singapore) was captured at 12 places × 3 zooms. The places were the hawker centre, a square, a park, a garden, the river (east and with towers), Marina, a kampong, west, north, the Padang and a highway; the zooms were district, neighbourhood and close. Our map was captured at the matching scale (their 0.25 m/px vs our 0.2 m/px) at the Capital complex, Sectors 17 and 21, Akshardham, IIT Gandhinagar, the cricket ground, Infocity, Punit Van, Sarita Udyan, the Sabarmati, Mahatma Mandir and a trunk road. The side-by-side sheet is kept locally at `outputs/compare/singapore-vs-gandhinagar.jpg`. Their screenshots are not committed.
+
+**How theirs is made.** Google Photorealistic 3D Tiles are rendered with three.js at 0.25 m/px. Qwen-Image-2.1-Turbo plus a pixel-art style LoRA repaints them with MultiDiffusion (1024 px windows), on one RTX 5080 in about 8 h for 520 MP. The viewer is OpenSeadragon. Animation layers: traffic with lanes, an intelligent-driver model and lights; canopy sway and water shimmer from map pixels; a foreground layer; pigeons, egrets, kites and chickens. Tilt-shift uses a CSS `backdrop-filter`.
+
+| Element | Pixel Singapore | Ours | Fix | Needs |
+|---|---|---|---|---|
+| Overall colour | Saturated, high contrast, deep shadows; orange/blue/green roofs | Washed-out beige and khaki, soft shadows | Colour grade (saturation, contrast); richer roof palette | Viewer grade now; palette in a re-render |
+| Sports grounds | Cricket strip, football lines, tennis courts in colour, mowing texture | Flat green ellipse with visible 8 px blocks | Draw pitch markings and mowing stripes from OSM `leisure=pitch` + `sport` | Viewer overlay (no re-render) |
+| Water | Deep teal-green, subtle texture, boats | Bright cyan, random white specks | Darker teal tint, fewer and softer glints, boats on the lakes | Viewer (sway shader) |
+| Roads | Lane lines, yellow edges, kerbs, crossings, medians | Plain grey, one dashed centre line | Edge lines, lane dashes by lane count, zebra crossings at junctions | Re-render |
+| Big roofs | Rooftop clutter, skylights, varied colours | Huge plain beige planes (Mahatma Mandir, sheds) | Ribs/skylights/AC units scaled to roof area; varied roof colours | Re-render |
+| Car parks | Parked cars in every lot | Empty stall lines | Parked-car sprites in OSM `amenity=parking` | Viewer (no re-render) |
+| Labels | None at neighbourhood zoom | Many overlapping POI labels | Fewer labels until close zoom, with a "Labels" switch | Viewer |
+| Tilt-shift | Strong (about 30% bands, heavy blur) | Light | Stronger default | Viewer |
+| Facades and textures | AI-painted glass, tiles, dithering | Clean 3D blocks | AI repaint over our own render (Qwen-Image Turbo + pixel LoRA) | Rented GPU, ~$20–40 per layer |
+| Vehicles, trees, cars under trees | Sprites in lanes, canopy sway | Done (3D sprites in lanes, sway, foreground) | — | — |
