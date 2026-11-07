@@ -32,7 +32,13 @@ void main() {
   vec2 d = vec2(sin(t * 2.1 + phase) + 0.6 * (n(img / 90.0 + t * 0.25) - 0.5), 0.45 * cos(t * 1.7 + phase * 1.3)) * amp * gust;
   vec2 src = (px + d) / res;
   vec3 c = texture(map, vec2(src.x, src.y)).rgb;
-  if (tree(c) > 0.5) {
+  // Canopy is speckled (leaf highlights and shade); lawns and pitches are flat. Require local contrast so
+  // grass is never redrawn over the ground layer (pitches, parked cars).
+  vec2 e = 2.0 / res;
+  float l0 = dot(c, vec3(0.3, 0.59, 0.11));
+  float lv = max(max(abs(dot(texture(map, src + vec2(e.x, 0.0)).rgb, vec3(0.3, 0.59, 0.11)) - l0), abs(dot(texture(map, src - vec2(e.x, 0.0)).rgb, vec3(0.3, 0.59, 0.11)) - l0)),
+                 max(abs(dot(texture(map, src + vec2(0.0, e.y)).rgb, vec3(0.3, 0.59, 0.11)) - l0), abs(dot(texture(map, src - vec2(0.0, e.y)).rgb, vec3(0.3, 0.59, 0.11)) - l0)));
+  if (tree(c) > 0.5 && lv > 0.045) {
     // Lit side of the gust: a touch brighter as leaves turn, so motion reads even in flat canopy.
     o = vec4(c * (1.0 + 0.06 * gust * sin(t * 2.1 + phase)), 1.0);
     return;
@@ -41,8 +47,10 @@ void main() {
   vec3 w = texture(map, px / res).rgb;
   if (water(w) < 0.5) discard;
   float ripple = n(img / 38.0 + vec2(t * 0.35, t * 0.12)) - n(img / 23.0 - vec2(t * 0.22, -t * 0.3));
-  float glint = step(0.93, n(img / 5.0 + vec2(t * 1.7, t * 0.9))) * step(0.6, n(img / 70.0 + t * 0.1)) * (1.0 - night);
-  o = vec4(w * (1.0 + 0.13 * ripple) + vec3(0.55) * glint + vec3(0.05, 0.06, 0.08) * night * max(ripple, 0.0), 1.0);
+  float glint = step(0.955, n(img / 5.0 + vec2(t * 1.7, t * 0.9))) * step(0.6, n(img / 70.0 + t * 0.1)) * (1.0 - night);
+  vec3 lit = w * (1.0 + 0.13 * ripple) + vec3(0.4) * glint + vec3(0.05, 0.06, 0.08) * night * max(ripple, 0.0);
+  // Same deep-teal tint as the ground layer draws at every zoom (ambient.ts WATER_TINT/ALPHA).
+  o = vec4(mix(lit, vec3(34.0, 88.0, 88.0) / 255.0, 0.6 * (1.0 - 0.6 * night)), 1.0);
 }`;
 
 export class TreeSway {

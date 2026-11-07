@@ -204,10 +204,84 @@ while (railUsed.size < railSegs.length) {
   if (len > 4000) rail.push(flat(img));
 }
 
+// Oriented minimum-area rectangle of a ground polygon (metres): centre, long axis angle, length, width.
+function orientedRect(ring) {
+  let best = null;
+  for (let i = 1; i < ring.length; i++) {
+    const a = Math.atan2(ring[i][1] - ring[i - 1][1], ring[i][0] - ring[i - 1][0]), c = Math.cos(a), s = Math.sin(a);
+    let u0 = Infinity, u1 = -Infinity, v0 = Infinity, v1 = -Infinity;
+    for (const [x, y] of ring) { const u = x * c + y * s, v = -x * s + y * c; u0 = Math.min(u0, u); u1 = Math.max(u1, u); v0 = Math.min(v0, v); v1 = Math.max(v1, v); }
+    const area = (u1 - u0) * (v1 - v0);
+    if (!best || area < best.area) { const cu = (u0 + u1) / 2, cv = (v0 + v1) / 2; best = { area, cx: cu * c - cv * s, cy: cu * s + cv * c, a, L: u1 - u0, W: v1 - v0 }; }
+  }
+  if (best.W > best.L) { best = { ...best, a: best.a + Math.PI / 2, L: best.W, W: best.L }; }
+  return best;
+}
+// Sports pitches: surface fills and white line markings drawn from OSM leisure=pitch/track + sport,
+// sized to each pitch's real rectangle (standard dimensions scaled to fit). Image-px primitives.
+const pitches = [];
+for (const f of data.features) {
+  const L = f.tags.leisure, sport = (f.tags.sport || '').split(';')[0];
+  if (!(L === 'pitch' || L === 'track') || f.geometry.type !== 'Polygon') continue;
+  const ring = f.geometry.coordinates[0], R = orientedRect(ring), ca = Math.cos(R.a), sa = Math.sin(R.a);
+  const P = (u, v) => { const [x, y] = project(R.cx + u * ca - v * sa, R.cy + u * sa + v * ca); return [r1(x), r1(y)]; };
+  const rect = (hu, hv, du = 0, dv = 0) => [P(du - hu, dv - hv), P(du + hu, dv - hv), P(du + hu, dv + hv), P(du - hu, dv + hv)].flat();
+  const circle = (r, du = 0, n = 20) => Array.from({ length: n + 1 }, (_, i) => P(du + r * Math.cos((i / n) * 2 * Math.PI), r * Math.sin((i / n) * 2 * Math.PI))).flat();
+  const fills = [], lines = [], hu = R.L / 2 - 1.2, hv = R.W / 2 - 1.2;
+  const stripes = (base, alt, n) => { fills.push([base, rect(R.L / 2, R.W / 2)]); for (let k = 0; k < n; k += 2) fills.push([alt, rect(R.L / n / 2, R.W / 2, -R.L / 2 + (k + 0.5) * R.L / n)]); };
+  const kind = L === 'track' ? 'track' : /soccer|football|hockey/.test(sport) ? 'football' : sport === 'cricket' ? 'cricket' : sport === 'tennis' ? 'tennis' : sport === 'basketball' ? 'basketball' : 'court';
+  if (kind === 'football') {
+    stripes('#6aa548', '#78b453', 10);
+    lines.push(rect(hu, hv), [...P(0, -hv), ...P(0, hv)], circle(Math.min(9.15, hv * 0.3)));
+    const bd = Math.min(16.5, hu * 0.3), bw = Math.min(20, hv * 0.6);
+    lines.push(rect(bd / 2, bw, -hu + bd / 2), rect(bd / 2, bw, hu - bd / 2));
+  } else if (kind === 'cricket') {
+    stripes('#6aa548', '#77b252', 12);
+    const n = 40, e = Array.from({ length: n + 1 }, (_, i) => P(hu * 0.95 * Math.cos((i / n) * 2 * Math.PI), hv * 0.95 * Math.sin((i / n) * 2 * Math.PI))).flat();
+    lines.push(e);
+    fills.push(['#d8c28e', rect(10.06, 1.52)]);
+    lines.push([...P(-8.8, -1.6), ...P(-8.8, 1.6)], [...P(8.8, -1.6), ...P(8.8, 1.6)]);
+  } else if (kind === 'tennis') {
+    const s = Math.min(1, (R.L - 4) / 23.77, (R.W - 2) / 10.97), cl = 11.885 * s, cw = 5.485 * s, sw = 4.115 * s, sl = 6.4 * s;
+    fills.push(['#4f8a63', rect(R.L / 2, R.W / 2)], ['#3a7a8c', rect(cl, cw)]);
+    lines.push(rect(cl, cw), rect(cl, sw), [...P(-sl, -sw), ...P(-sl, sw)], [...P(sl, -sw), ...P(sl, sw)], [...P(-sl, 0), ...P(sl, 0)], [...P(0, -cw - 0.5), ...P(0, cw + 0.5)]);
+  } else if (kind === 'basketball') {
+    const s = Math.min(1, (R.L - 2) / 28, (R.W - 2) / 15);
+    fills.push(['#9aa3a8', rect(R.L / 2, R.W / 2)], ['#c9703a', rect(14 * s, 7.5 * s)]);
+    lines.push(rect(14 * s, 7.5 * s), [...P(0, -7.5 * s), ...P(0, 7.5 * s)], circle(1.8 * s), rect(2.9 * s, 2.45 * s, -14 * s + 2.9 * s), rect(2.9 * s, 2.45 * s, 14 * s - 2.9 * s));
+  } else if (kind === 'track') {
+    // Running track: red oval band with lane lines, grass infield with stripes.
+    const oval = (a, b, n = 48) => Array.from({ length: n + 1 }, (_, i) => { const t = (i / n) * 2 * Math.PI, c = Math.cos(t), s2 = Math.sin(t), straight = Math.max(0, a - b); return P(Math.sign(c) * straight + b * c, b * s2); }).flat();
+    fills.push(['#b9553f', oval(R.L / 2 - 0.5, R.W / 2 - 0.5)], ['#6aa548', oval(R.L / 2 - 10, R.W / 2 - 10)]);
+    for (let k = 1; k < 8; k++) lines.push(oval(R.L / 2 - 0.5 - k * 1.22, R.W / 2 - 0.5 - k * 1.22));
+  } else {
+    fills.push(['#5f8f9a', rect(R.L / 2, R.W / 2)]);
+    lines.push(rect(hu, hv), [...P(0, -hv), ...P(0, hv)]);
+  }
+  // Oval grounds (cricket, tracks) clip their stripes to the oval instead of the bounding rectangle.
+  const clip = kind === 'cricket' ? Array.from({ length: 49 }, (_, i) => P(R.L / 2 * Math.cos((i / 48) * 2 * Math.PI), R.W / 2 * Math.sin((i / 48) * 2 * Math.PI))).flat() : undefined;
+  pitches.push({ kind, fills, lines, ...(clip ? { clip } : {}) });
+}
+// Car parks: stall slots in rows along each lot's long axis (5 m stalls, 6 m aisles), only inside the lot.
+const parked = [];
+for (const f of data.features) {
+  if (f.tags.amenity !== 'parking' || f.geometry.type !== 'Polygon') continue;
+  const ring = f.geometry.coordinates[0], R = orientedRect(ring), ca = Math.cos(R.a), sa = Math.sin(R.a);
+  for (let v = -R.W / 2 + 2.5, row = 0; v <= R.W / 2 - 2.5; v += row % 2 ? 6 + 5 : 5, row++) {
+    const facing = row % 2 ? 1 : -1; // pairs of rows face each other across an aisle
+    for (let u = -R.L / 2 + 1.5; u <= R.L / 2 - 1.5; u += 2.6) {
+      const x = R.cx + u * ca - v * sa, y = R.cy + u * sa + v * ca;
+      if (!inside([x, y], ring)) continue;
+      const [ix, iy] = project(x, y);
+      parked.push([r1(ix), r1(iy), +(R.a + Math.PI / 2 * facing).toFixed(3)]);
+    }
+  }
+}
+
 const result = {
   schema: 1, mapId, version: meta.version,
   note: 'Motion overlay data in image px. Roads and metro from OSM; lamp, window, firefly and glow positions are authored ambience derived from OSM geometry.',
-  blank, roads, metro, water: { points: flat(water), rings: waterRings }, rail, sky: { shadowPerMetre, liftPerMetre: (() => { const a = project(0, 0, 1), b = project(0, 0, 0); return [+(a[0] - b[0]).toFixed(3), +(a[1] - b[1]).toFixed(3)]; })(), roosts: roostSet },
+  blank, roads, metro, pitches, parked, water: { points: flat(water), rings: waterRings }, rail, sky: { shadowPerMetre, liftPerMetre: (() => { const a = project(0, 0, 1), b = project(0, 0, 0); return [+(a[0] - b[0]).toFixed(3), +(a[1] - b[1]).toFixed(3)]; })(), roosts: roostSet },
   lamps: flat(lampList), windows: flat(windows.filter(inImage)), fireflies: flat(fireflies.filter(inImage)), glows,
 };
 fs.writeFileSync(`${out}/motion.json`, JSON.stringify(result));

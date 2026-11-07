@@ -28,6 +28,8 @@ export function festivalFor(now = Date.now()): Festival {
 }
 
 const KITE_COLOURS = ['#e8413a', '#f2c230', '#e0418f', '#2fa3d8', '#3fae4a', '#f08a24', '#8e5bd8'];
+// Deep teal-green like real lakes (and Pixel Singapore's river), laid over the bright rendered cyan.
+export const WATER_TINT = '34,88,88', WATER_ALPHA = 0.6;
 const PLANE_SPEED = 1100, // ~3× a real approach speed: the city is 12 km across, so real speed would mean one plane every few minutes
   TRAIN_SPEED = 140, TRAIN_LEN = 650;
 
@@ -40,7 +42,7 @@ export class Ambient {
   private bursts: { x: number; y: number; t0: number; hue: number; seed: number }[] = [];
   private nextBurst = 0;
   private vehicles: Vehicles | null = null;
-  stats = { water: 0, trains: 0, planes: 0, dayVehicles: 0, cows: 0, kites: 0, festival: '' as string };
+  stats = { pitches: 0, parked: 0, water: 0, trains: 0, planes: 0, dayVehicles: 0, cows: 0, kites: 0, festival: '' as string };
 
   constructor(private data: MotionData, private hash: Hash, private at: At, prepare: (p: number[]) => Poly, private width: number, private height: number,
     private roads: { pts: Float32Array; cum: Float32Array; len: number; bbox: [number, number, number, number] }[], roadWeight: number[], transform?: { right: number[]; up: number[]; scale: number; eye?: number[] }) {
@@ -80,27 +82,46 @@ export class Ambient {
   drawGround(f: Frame, sky: NonNullable<MotionData['sky']>) {
     const { ctx, t, z, night, onScreen } = f, day = 1 - night, s = this.stats;
     s.water = s.trains = s.dayVehicles = s.cows = 0;
-    // Water: sun glints by day, cool moonlit specks by night, and a slow ripple dash on some points.
+    // Water: a deep-teal tint over the rendered cyan (matched by the sway shader up close), then sparse
+    // sun glints by day, cool specks by night, and slow ripple dashes on some points.
+    if (this.waterPath) { ctx.fillStyle = `rgba(${WATER_TINT},${(WATER_ALPHA * (1 - 0.6 * night)).toFixed(3)})`; ctx.fill(this.waterPath); }
     const W = this.data.water?.points;
     if (W && z > 0.03) {
       const stride = z < 0.08 ? 3 : 1, g = Math.max(3.6 / z, 5);
       for (let i = 0; i < W.length; i += 2 * stride) {
         const x = W[i], y = W[i + 1]; if (!onScreen(x, y)) continue;
         const h = this.hash(i), tw = Math.sin(t * (1.3 + h * 2.2) + h * 60);
-        if (tw > 0.55) {
-          const a = Math.min(1, (tw - 0.55) * 3);
-          ctx.fillStyle = night > 0.5 ? `rgba(170,200,255,${0.5 * a * night})` : `rgba(255,255,240,${0.85 * a * day})`;
+        if (tw > 0.82) {
+          const a = Math.min(1, (tw - 0.82) * 5);
+          ctx.fillStyle = night > 0.5 ? `rgba(170,200,255,${0.5 * a * night})` : `rgba(245,250,240,${0.6 * a * day})`;
           ctx.fillRect(x - g / 2, y - g / 2, g, g);
         }
         if (h < 0.35 && z > 0.08) {
           const off = ((t * 9 + h * 300) % 60) - 30, l = g * 3;
-          ctx.fillStyle = night > 0.5 ? `rgba(120,160,220,${0.3 * night})` : `rgba(240,252,255,${0.4 * day})`;
+          ctx.fillStyle = night > 0.5 ? `rgba(120,160,220,${0.3 * night})` : `rgba(225,245,240,${0.2 * day})`;
           ctx.fillRect(x + off - l / 2, y, l, Math.max(1.4 / z, 2));
         }
         s.water++;
       }
       if (night > 0.3 && this.waterPath) { ctx.save(); ctx.clip(this.waterPath); ctx.fillStyle = `rgba(255,190,110,${0.05 * night * (0.9 + 0.1 * Math.sin(t))})`; ctx.fillRect(f.x0, f.y0, f.x1 - f.x0, f.y1 - f.y0); ctx.restore(); }
     }
+    // Sports pitches: mowing stripes, court surfaces and white markings from OSM pitch polygons.
+    s.pitches = 0;
+    if (this.data.pitches && z > 0.05) {
+      ctx.globalAlpha = 1 - 0.72 * night;
+      for (const p of this.data.pitches) {
+        const first = p.fills[0]?.[1]; if (!first || !onScreen(first[0], first[1])) { let vis = false; for (let i = 0; i < (first?.length || 0); i += 2) if (onScreen(first![i], first![i + 1])) { vis = true; break; } if (!vis) continue; }
+        if (p.clip) { ctx.save(); ctx.beginPath(); for (let i = 0; i < p.clip.length; i += 2) (i ? ctx.lineTo(p.clip[i], p.clip[i + 1]) : ctx.moveTo(p.clip[i], p.clip[i + 1])); ctx.closePath(); ctx.clip(); }
+        for (const [colour, poly] of p.fills) { ctx.fillStyle = colour; ctx.beginPath(); for (let i = 0; i < poly.length; i += 2) (i ? ctx.lineTo(poly[i], poly[i + 1]) : ctx.moveTo(poly[i], poly[i + 1])); ctx.closePath(); ctx.fill(); }
+        if (p.clip) ctx.restore();
+        ctx.strokeStyle = 'rgba(255,255,255,0.88)'; ctx.lineWidth = Math.max(0.6, 1.1 / z); ctx.lineJoin = 'round';
+        for (const ln of p.lines) { ctx.beginPath(); for (let i = 0; i < ln.length; i += 2) (i ? ctx.lineTo(ln[i], ln[i + 1]) : ctx.moveTo(ln[i], ln[i + 1])); ctx.stroke(); }
+        s.pitches++;
+      }
+      ctx.globalAlpha = 1;
+    }
+    // Parked cars in car parks (under the tree layer, like the rest of the ground).
+    s.parked = this.vehicles && this.data.parked && z > 0.1 ? this.vehicles.drawParked(ctx, this.data.parked, f, this.hash, 1 - 0.55 * night) : 0;
     // Daytime traffic: 3D vehicle sprites in lanes (see vehicles.ts); flat fallback without a camera transform.
     if (day > 0.2 && z > 0.06 && this.vehicles) {
       this.vehicles.draw(ctx, t, f, this.at, Math.min(1, day * 1.5), z < 0.15 ? 900 : 1800);

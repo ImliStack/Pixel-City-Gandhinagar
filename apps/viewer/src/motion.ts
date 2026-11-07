@@ -10,6 +10,7 @@ export type MotionData = {
   metro: { line: number[]; stations: { name: string; at: number }[] }[];
   lamps: number[]; windows: number[]; fireflies: number[]; glows: [number, number, number][];
   water?: { points: number[]; rings: number[][] }; rail?: number[][];
+  pitches?: { kind: string; fills: [string, number[]][]; lines: number[][]; clip?: number[] }[]; parked?: [number, number, number][];
   sky?: { shadowPerMetre: Record<string, [number, number]>; liftPerMetre: [number, number]; roosts: [number, number][] };
 };
 import { Ambient, type Festival } from './ambient';

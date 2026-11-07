@@ -104,6 +104,22 @@ export class Vehicles {
     this.sprites.set(key, sp); return sp;
   }
 
+  // Parked cars in OSM car parks: ~60% of stalls taken, mostly cars with some scooters, nose-in.
+  drawParked(ctx: CanvasRenderingContext2D, stalls: [number, number, number][], view: { x0: number; y0: number; x1: number; y1: number }, hash: (n: number) => number, alpha: number) {
+    const ppm = this.t.scale; let n = 0;
+    ctx.globalAlpha = alpha;
+    for (let i = 0; i < stalls.length; i++) {
+      const [x, y, a] = stalls[i]; if (x < view.x0 - 40 || x > view.x1 + 40 || y < view.y0 - 40 || y > view.y1 + 40) continue;
+      if (hash(i * 11 + 1) > 0.62) continue;
+      const kind = hash(i * 11 + 2) < 0.18 ? 1 : 0, colour = Math.floor(hash(i * 11 + 3) * KINDS[kind].colours.length);
+      const heading = ((Math.round((a / (Math.PI * 2)) * HEADINGS) % HEADINGS) + HEADINGS) % HEADINGS;
+      const sp = this.sprite(kind, colour, heading), k = sp.scale * ppm, w = sp.canvas.width * k;
+      ctx.drawImage(sp.canvas, x - sp.ox * k, y - sp.oy * k, w, w); n++;
+    }
+    ctx.globalAlpha = 1;
+    return n;
+  }
+
   draw(ctx: CanvasRenderingContext2D, t: number, view: { x0: number; y0: number; x1: number; y1: number }, at: (r: { pts: Float32Array; cum: Float32Array }, s: number) => [number, number, number, number], alpha: number, limit = 1800) {
     this.stats.drawn = 0;
     const s5 = this.t.scale, ppm = s5; // image px per metre

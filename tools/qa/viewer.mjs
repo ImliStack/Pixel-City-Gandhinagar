@@ -267,6 +267,17 @@ try {
   check('tilt-shift can be switched off', (await swayPg.locator('.tilt-shift').count()) === 0);
   await swayPg.close();
 
+  // Pixel Singapore viewer fixes: pitch markings, parked cars, vivid grade, calmer labels by default.
+  const pk = mo.parked[Math.floor(mo.parked.length / 3)];
+  [apg, ast] = await amb('&festival=off', `#v=2&m=${mapId}&l=A&cx=46980&cy=33206&z=1`);
+  check('sports pitches drawn with markings', ast.pitches >= 1, `${ast.pitches} pitches`);
+  check('vivid colour grade on by default', await apg.evaluate(() => getComputedStyle(document.querySelector('.map-canvas')).filter.includes('saturate')));
+  await apg.close();
+  [apg, ast] = await amb('&festival=off', `#v=2&m=${mapId}&l=A&cx=${pk[0]}&cy=${pk[1]}&z=1.3`);
+  check('parked cars fill car parks', ast.parked > 20, `${ast.parked} parked`); await apg.close();
+  [apg] = await amb('&festival=off', `#v=2&m=${mapId}&l=A&cx=${vsA[0]}&cy=${vsA[1]}&z=0.4`, 2500);
+  check('labels stay quiet at neighbourhood zoom', (await apg.locator('.place-label').count()) === 0); await apg.close();
+
   // prefers-reduced-motion: no animation by default, layer switches are instant.
   const calm = await browser.newContext({viewport: {width: 1200, height: 800}, reducedMotion: 'reduce'});
   await calm.route('**/*', r => { const u = r.request().url(); if (u.startsWith(base) || u.startsWith('data:') || u.startsWith('blob:')) return r.continue(); external.push(u); return r.abort(); });

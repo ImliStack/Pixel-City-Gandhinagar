@@ -354,7 +354,10 @@ svg { display: block; }
 .air-canvas { z-index: 1; }
 /* Tilt-shift: blur bands with soft masks, above the map and motion, below every control. */
 .tilt-shift { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-.tilt-shift i { position: absolute; left: 0; right: 0; height: 24%; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.tilt-shift i { position: absolute; left: 0; right: 0; height: 32%; -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
 .tilt-shift .top { top: 0; -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0%, transparent 100%); }
 .tilt-shift .bottom { bottom: 0; -webkit-mask-image: linear-gradient(to top, #000 0%, transparent 100%); mask-image: linear-gradient(to top, #000 0%, transparent 100%); }
-@media (max-width: 640px) { .tilt-shift i { height: 18%; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); } }
+@media (max-width: 640px) { .tilt-shift i { height: 22%; -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); } }
+
+/* Vivid colour grade on the map tiles and the sway layer (which re-draws map pixels). Keep in sync with Postcard.tsx. */
+.app.vivid .map-canvas, .app.vivid .sway-canvas { filter: saturate(1.25) contrast(1.08); }

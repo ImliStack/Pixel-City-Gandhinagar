@@ -2,10 +2,13 @@ import { useState } from 'react';
 import OpenSeadragon from 'openseadragon';
 import { Download, Share2, X } from 'lucide-react';
 
+// Same grade as `.app.vivid .map-canvas` in style.css, so postcards match the screen.
+const VIVID = 'saturate(1.25) contrast(1.08)';
+
 // Photo mode: frame the current view (map tiles + motion layer) as a postcard with a caption and the
 // OSM attribution, then save it, or share it on devices that support sharing files.
-export function Postcard({ viewer, motionCanvas, defaultCaption, layerLabel, onClose }: {
-  viewer: OpenSeadragon.Viewer | null; motionCanvas: HTMLCanvasElement | null; defaultCaption: string; layerLabel: string; onClose: () => void;
+export function Postcard({ vivid = false, viewer, motionCanvas, defaultCaption, layerLabel, onClose }: {
+  vivid?: boolean; viewer: OpenSeadragon.Viewer | null; motionCanvas: HTMLCanvasElement | null; defaultCaption: string; layerLabel: string; onClose: () => void;
 }) {
   const [caption, setCaption] = useState(defaultCaption);
   const [busy, setBusy] = useState(false);
@@ -18,7 +21,7 @@ export function Postcard({ viewer, motionCanvas, defaultCaption, layerLabel, onC
     const card = document.createElement('canvas'); card.width = w + pad * 2; card.height = h + pad * 2 + strip;
     const ctx = card.getContext('2d')!;
     ctx.fillStyle = '#f6f2e7'; ctx.fillRect(0, 0, card.width, card.height);
-    ctx.drawImage(map, pad, pad);
+    ctx.filter = vivid ? VIVID : 'none'; ctx.drawImage(map, pad, pad); ctx.filter = 'none';
     if (motionCanvas && motionCanvas.width) ctx.drawImage(motionCanvas, pad, pad, w, h);
     ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = Math.max(1, w / 900); ctx.strokeRect(pad, pad, w, h);
     const base = card.height - strip - pad / 2, f = (size: number, weight = 600) => `${weight} ${Math.round(size)}px 'DM Sans Variable', system-ui, sans-serif`;

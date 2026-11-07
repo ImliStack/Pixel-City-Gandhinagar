@@ -74,6 +74,10 @@ export default function App() {
   const [motionOn, setMotionOn] = useState(() => (stored('pc-motion') ?? (reducedMotion ? '0' : '1')) === '1');
   // Tilt-shift: a soft blur band at the top and bottom of the screen for a miniature-model feel.
   const [tiltShift, setTiltShift] = useState(() => (stored('pc-tilt') ?? '1') === '1');
+  // Vivid colour: a saturation/contrast grade on the map (the render alone reads washed out).
+  const [vivid, setVivid] = useState(() => (stored('pc-vivid') ?? '1') === '1');
+  // Place labels: 'fewer' (default: only from close zoom), 'all' (busy, every named place), 'off'.
+  const [labelMode, setLabelMode] = useState<'fewer' | 'all' | 'off'>(() => { const v = stored('pc-labels'); return v === 'all' || v === 'off' ? v : 'fewer'; });
   const motionOnRef = useRef(motionOn);
   motionOnRef.current = motionOn;
   // Live clock: day, dusk and night follow the current time in India.
@@ -492,7 +496,8 @@ export default function App() {
   const showPinLabels = imageZoom > 0.55;
   // Close zoom: label named places in view (dot + name), greedily decluttered by priority so labels never overlap.
   const placeLabels = (() => {
-    if (!metadata || imageZoom < 0.3) return [];
+    if (!metadata || labelMode === 'off' || imageZoom < (labelMode === 'all' ? 0.3 : 0.6)) return [];
+    const cap = labelMode === 'all' ? 70 : imageZoom < 1 ? 24 : 50;
     const pinned = new Set(pins.map((p) => p.id)), W = window.innerWidth, H = window.innerHeight, boxes: number[][] = [], out: { poi: Poi; x: number; y: number }[] = [];
     const rank = (p: Poi) => (p.curated ? 4 : 0) + (p.kind === 'landmark' ? 2 : 0) + (p.category ? 1.5 : 0) + (['building', 'park', 'site', 'water'].includes(p.kind || '') ? 1 : 0) - (isStreet(p) ? (imageZoom < 0.4 ? 9 : 1) : 0) - (p.unnamed ? (imageZoom < 0.8 ? 9 : 2) : 0);
     const cands = metadata.pois.filter((p) => !pinned.has(p.id) && p.kind !== 'neighbourhood').map((p) => ({ p, r: rank(p) })).filter((c) => c.r > -5).sort((a, b) => b.r - a.r);
@@ -500,7 +505,7 @@ export default function App() {
       const im = pointForPoi(p); const sp = im && screenPoint(im[0], im[1]); if (!sp || sp.x < 0 || sp.y < 30 || sp.x > W || sp.y > H) continue;
       const w = Math.min(220, p.name.length * 6.6 + 18), b = [sp.x - 6, sp.y - 9, sp.x + w, sp.y + 9];
       if (boxes.some((o) => b[0] < o[2] && o[0] < b[2] && b[1] < o[3] && o[1] < b[3])) continue;
-      boxes.push(b); out.push({ poi: p, x: sp.x, y: sp.y }); if (out.length >= 70) break;
+      boxes.push(b); out.push({ poi: p, x: sp.x, y: sp.y }); if (out.length >= cap) break;
     }
     return out;
   })();
@@ -529,7 +534,7 @@ export default function App() {
   const northAngle = right && up ? Math.atan2(right[1], up[1]) * 180 / Math.PI : 0;
   const minimapSrc = metadata ? localPath(base, metadata.minimap || 'overview.png') : '';
 
-  return <main className={`app ${debug ? 'debug-active' : ''}`}>
+  return <main className={`app ${debug ? 'debug-active' : ''} ${vivid ? 'vivid' : ''}`}>
     <div ref={containerRef} className="map-canvas" role="region" aria-label={`Interactive orthographic map of ${metadata?.city || 'the city'}. Drag to pan; scroll or pinch to zoom.`} />
     <canvas ref={motionCanvasRef} className="motion-canvas" aria-hidden="true" />
     <canvas ref={swayCanvasRef} className="motion-canvas sway-canvas" aria-hidden="true" />
@@ -601,7 +606,7 @@ export default function App() {
 
     {festival && motionOn && !festivalNoteHidden && <button className="festival-note" onClick={() => setFestivalNoteHidden(true)} title="Hide">{FESTIVAL_NOTE[festival]}{festival !== 'uttarayan' && layer !== 'night' ? ' · switch to Night' : ''}</button>}
 
-    {photoOpen && <Postcard viewer={ready ? viewer : null} motionCanvas={motionCanvasRef.current} defaultCaption={selected?.name || nearestAreaName()} layerLabel={LAYER_LABEL[layerRef.current]} onClose={() => setPhotoOpen(false)} />}
+    {photoOpen && <Postcard vivid={vivid} viewer={ready ? viewer : null} motionCanvas={motionCanvasRef.current} defaultCaption={selected?.name || nearestAreaName()} layerLabel={LAYER_LABEL[layerRef.current]} onClose={() => setPhotoOpen(false)} />}
 
     {huntsOpen && metadata && <Hunts metadata={metadata} viewer={ready ? viewer : null} counts={social.snap?.hunts || {}} reportHunt={social.reportHunt} onClose={() => setHuntsOpen(false)} onFly={choosePoi} />}
 
@@ -658,6 +663,8 @@ export default function App() {
         <button role="menuitemcheckbox" aria-checked={liveClock} className={liveClock ? 'active' : ''} disabled={!layers.night} onClick={() => { setLiveClock(!liveClock); setLiveWeather(false); }} title="Day, dusk and night follow the current time in India">Live India time</button>
         <span className="menu-heading">Festival</span>
         <div className="festival-row">{(['auto', 'uttarayan', 'diwali', 'navratri', 'off'] as const).map((f) => <button key={f} role="menuitemradio" aria-checked={festivalPick === f} className={festivalPick === f ? 'active' : ''} onClick={() => { setFestivalPick(f); setFestivalNoteHidden(false); }} title={f === 'auto' ? 'Follows the India calendar' : undefined}>{f === 'auto' ? 'By date' : f === 'off' ? 'Off' : FESTIVAL_LABEL[f]}</button>)}</div>
+        <button role="menuitemcheckbox" aria-checked={vivid} className={vivid ? 'active' : ''} onClick={() => { setVivid(!vivid); store('pc-vivid', vivid ? '0' : '1'); }} title="Richer colour and contrast">Vivid colour</button>
+        <button onClick={() => { const next = labelMode === 'fewer' ? 'all' : labelMode === 'all' ? 'off' : 'fewer'; setLabelMode(next); store('pc-labels', next); }} title="Place names on the map">Labels: {labelMode === 'fewer' ? 'fewer' : labelMode === 'all' ? 'all' : 'off'}</button>
         <button role="menuitemcheckbox" aria-checked={tiltShift} className={tiltShift ? 'active' : ''} onClick={() => setTiltShift(!tiltShift)} title="Soft blur at the top and bottom, like a miniature model">Tilt-shift blur</button>
         <button role="menuitemcheckbox" aria-checked={motionOn} className={motionOn ? 'active' : ''} disabled={!motionData} onClick={() => setMotionOn(!motionOn)} title={reducedMotion ? 'Your system asks for reduced motion' : 'Birds by day; traffic, metro, windows, lamps and fireflies at night; monsoon clouds'}>Night &amp; weather motion</button>
         <p>{Object.keys(layers).length < 6 ? 'Greyed layers are still being rendered or tiled. ' : ''}All layers are the same geometry rendered with different light and palette. No generative art layer exists yet.</p>
